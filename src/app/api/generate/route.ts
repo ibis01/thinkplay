@@ -6,7 +6,6 @@ const TIMEOUT_MS = 30000; // 30 seconds hard limit
 
 export async function POST(request: Request) {
   try {
-    // 1. Input Validation
     const body = await request.json();
     if (!body || typeof body !== "object") {
       return NextResponse.json(
@@ -31,17 +30,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Create a timeout controller
     const timeoutController = new AbortController();
-    const timeoutId = setTimeout(() => timeoutController.abort(), TIMEOUT_MS);
+    const timeoutId = setTimeout(
+      () => timeoutController.abort("timeout"),
+      TIMEOUT_MS,
+    );
 
-    // 3. Link client abort to timeout abort
     request.signal.addEventListener("abort", () => {
-      timeoutController.abort();
+      timeoutController.abort("client_abort");
       clearTimeout(timeoutId);
     });
 
-    // 4. Call AI Provider with combined signal
     const result = await generateAIResponse(
       prompt.trim(),
       timeoutController.signal,
@@ -51,11 +50,16 @@ export async function POST(request: Request) {
     if (result.success) {
       return NextResponse.json({ response: result.response });
     } else {
-      // Distinguish timeout/cancellation from provider failure
-      if (result.error === "Timeout" || result.error === "Request cancelled") {
+      if (result.error === "timeout") {
         return NextResponse.json(
-          { error: "The request took too long or was cancelled." },
+          { error: "The request took too long to process." },
           { status: 408 },
+        );
+      }
+      if (result.error === "client_abort") {
+        return NextResponse.json(
+          { error: "Request cancelled." },
+          { status: 499 },
         );
       }
       return NextResponse.json(
@@ -65,9 +69,21 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
+      // AbortController.abort(reason) stores the reason on the error
+      const abortError = error as Error & { reason?: string };
+      const reason = abortError.reason;
+
+      if (reason === "timeout") {
+        return NextResponse.json(
+          { error: "The request took too long to process." },
+          { status: 408 },
+        );
+      }
+
+      // client_abort or any other abort reason
       return NextResponse.json(
-        { error: "Request cancelled or timed out." },
-        { status: 408 },
+        { error: "Request cancelled." },
+        { status: 499 },
       );
     }
     console.error("API Route Error:", error);

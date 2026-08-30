@@ -18,7 +18,9 @@ export async function generateAIResponse(prompt: string, signal?: AbortSignal) {
     return { success: true, response: result.text };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      return { success: false, error: "Timeout" };
+      // Pass through the abort reason (Node 17+ supports signal.reason)
+      const reason = (error as Error & { reason?: string }).reason || "timeout";
+      return { success: false, error: reason };
     }
     console.error("AI Provider Error:", error);
     return { success: false, error: "Failed to generate response." };
