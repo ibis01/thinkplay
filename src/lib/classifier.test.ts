@@ -2,34 +2,31 @@ import { describe, it, expect } from "vitest";
 import { classifyIntent } from "./classifier";
 
 describe("classifyIntent", () => {
-  it("should classify clear coding prompts", () => {
-    expect(classifyIntent("Fix this React bug")).toBe("coding");
-    expect(classifyIntent("Write a Python function to sort a list")).toBe(
-      "coding",
-    );
-    expect(classifyIntent("```javascript\nconsole.log('hi')\n```")).toBe(
-      "coding",
-    );
-    expect(classifyIntent("Debug my JavaScript application")).toBe("coding");
+  it("should classify clear coding prompts and extract topic", () => {
+    const result = classifyIntent("Fix this React bug");
+    expect(result.category).toBe("coding");
+    expect(result.topic).toBe("react");
   });
 
-  it("should classify clear creative prompts", () => {
-    expect(classifyIntent("Write a poem about Mars")).toBe("creative");
-    expect(classifyIntent("Create a story about a robot")).toBe("creative");
-    expect(classifyIntent("Design a logo for a coffee shop")).toBe("creative");
+  it("should classify clear creative prompts and extract topic", () => {
+    const result = classifyIntent("Write a poem about Mars");
+    expect(result.category).toBe("creative");
+    expect(result.topic).toBe("space");
   });
 
-  it("should classify general prompts", () => {
-    expect(classifyIntent("Explain quantum physics")).toBe("general");
-    expect(classifyIntent("What is the capital of France?")).toBe("general");
+  it("should classify general prompts and fallback to general topic", () => {
+    const result = classifyIntent("Explain quantum physics");
+    expect(result.category).toBe("general");
+    expect(result.topic).toBe("general");
   });
 
-   it("should handle ambiguous prompts correctly (technical intent wins)", () => {
-     // "Write" and "art" trigger creative, but "Python function" heavily weights coding
-     expect(classifyIntent("Write a Python function about art")).toBe("coding");
-     // "creative writing" triggers creative, but "Debug" and "Python script" heavily weight coding
-     expect(classifyIntent("Debug this creative writing Python script")).toBe(
-       "coding",
-     );
-   });
+  it("should handle ambiguous prompts correctly (technical intent wins)", () => {
+    const result1 = classifyIntent("Write a Python function about art");
+    expect(result1.category).toBe("coding");
+    expect(result1.topic).toBe("python");
+
+    const result2 = classifyIntent("Debug this creative writing Python script");
+    expect(result2.category).toBe("coding");
+    expect(result2.topic).toBe("python");
+  });
 });

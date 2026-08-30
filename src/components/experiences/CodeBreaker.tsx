@@ -9,28 +9,72 @@ interface CodeChallenge {
   buggyLineIndex: number;
 }
 
-const MVP_CHALLENGES: CodeChallenge[] = [
+// Contextual Challenge Library
+const TOPIC_CHALLENGES: Record<string, CodeChallenge[]> = {
+  react: [
+    {
+      lines: [
+        "function Counter() {",
+        "  const [count, setCount] = useState(0)",
+        "  return <button>{count}</button>",
+        "}",
+      ],
+      buggyLineIndex: 1,
+    },
+    {
+      lines: [
+        "const User = ({ name }) => {",
+        "  return <h1>Hello {name}</h1>",
+        "}",
+        "export default User;",
+      ],
+      buggyLineIndex: 0,
+    },
+    {
+      lines: [
+        "useEffect(() => {",
+        "  fetchData()",
+        "}, [])",
+        "import { useEffect } from 'react'",
+      ],
+      buggyLineIndex: 3,
+    },
+  ],
+  python: [
+    {
+      lines: [
+        "def greet(name):",
+        "    print(f'Hello {name}')",
+        "greet('World'",
+      ],
+      buggyLineIndex: 2,
+    },
+    { lines: ["for i in range(10)", "    print(i)"], buggyLineIndex: 0 },
+    { lines: ["if x = 5:", "    return True"], buggyLineIndex: 0 },
+  ],
+  javascript: [
+    {
+      lines: [
+        "const arr = [1, 2, 3];",
+        "arr.map(x => x * 2",
+        "console.log(arr);",
+      ],
+      buggyLineIndex: 1,
+    },
+    {
+      lines: ["function add(a, b) {", "  return a + b", "}", "add(1, 2"],
+      buggyLineIndex: 3,
+    },
+  ],
+};
+
+const GENERAL_CHALLENGES: CodeChallenge[] = [
+  { lines: ["if (x = 5) {", "  return true;", "}"], buggyLineIndex: 0 },
   {
     lines: [
       "const data = await fetch(url)",
       "console.log(data;",
       "return data;",
-    ],
-    buggyLineIndex: 1,
-  },
-  {
-    lines: ["function add(a, b) {", "  return a + b", "}", "add(1, 2"],
-    buggyLineIndex: 3,
-  },
-  {
-    lines: ["if (x = 5) {", "  return true;", "}"],
-    buggyLineIndex: 0,
-  },
-  {
-    lines: [
-      "const arr = [1, 2, 3];",
-      "arr.map(x => x * 2",
-      "console.log(arr);",
     ],
     buggyLineIndex: 1,
   },
@@ -48,20 +92,25 @@ const MVP_CHALLENGES: CodeChallenge[] = [
 
 interface CodeBreakerProps {
   isFinishing: boolean;
+  topic?: string;
 }
 
-export default function CodeBreaker({ isFinishing }: CodeBreakerProps) {
+export default function CodeBreaker({ isFinishing, topic }: CodeBreakerProps) {
+  // Select challenge pool based on topic, fallback to general
+  const challengePool =
+    (topic && TOPIC_CHALLENGES[topic]) || GENERAL_CHALLENGES;
+
   const [challenge, setChallenge] = useState<CodeChallenge>(
-    () => MVP_CHALLENGES[Math.floor(Math.random() * MVP_CHALLENGES.length)],
+    () => challengePool[Math.floor(Math.random() * challengePool.length)],
   );
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [selectedLine, setSelectedLine] = useState<number | null>(null);
 
-  // Rule 13/14: Ref to track mount state and prevent leaks
   const isMounted = useRef(true);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Update pool if topic changes dynamically (though usually static per session)
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -72,11 +121,11 @@ export default function CodeBreaker({ isFinishing }: CodeBreakerProps) {
 
   const pickNewChallenge = useCallback(() => {
     if (!isMounted.current) return;
-    const randomIndex = Math.floor(Math.random() * MVP_CHALLENGES.length);
-    setChallenge(MVP_CHALLENGES[randomIndex]);
+    const randomIndex = Math.floor(Math.random() * challengePool.length);
+    setChallenge(challengePool[randomIndex]);
     setSelectedLine(null);
     setFeedback(null);
-  }, []);
+  }, [challengePool]);
 
   const handleLineSelect = useCallback(
     (index: number) => {
@@ -88,7 +137,6 @@ export default function CodeBreaker({ isFinishing }: CodeBreakerProps) {
         setFeedback("correct");
         setScore((prev) => prev + 1);
 
-        // Rule 13: Clear previous timer to prevent leaks
         if (advanceTimer.current) clearTimeout(advanceTimer.current);
         advanceTimer.current = setTimeout(() => {
           if (isMounted.current && !isFinishing) {
@@ -121,7 +169,10 @@ export default function CodeBreaker({ isFinishing }: CodeBreakerProps) {
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Bug className="w-3.5 h-3.5 text-red-400" />
-          Spot the Bug
+          Spot the Bug{" "}
+          {topic && (
+            <span className="text-purple-400 normal-case">({topic})</span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 bg-gray-800/50 px-2.5 py-1 rounded-full border border-gray-700">
           <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />

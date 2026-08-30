@@ -6,6 +6,7 @@ interface ThinkPlayState {
   state: LifecycleState;
   currentPrompt: string;
   category: PromptCategory | null;
+  topic: string | null; // NEW
   aiResponse: string | null;
   errorMessage: string | null;
   currentRequestId: string | null;
@@ -19,6 +20,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   state: "IDLE",
   currentPrompt: "",
   category: null,
+  topic: null, // NEW
   aiResponse: null,
   errorMessage: null,
   currentRequestId: null,
@@ -26,7 +28,6 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   transitionTimerId: null,
 
   submitRequest: async (prompt: string) => {
-    // 1. Cleanup previous request lifecycle
     const existingController = get().abortController;
     if (existingController) existingController.abort();
 
@@ -40,6 +41,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       state: "REQUEST_STARTING",
       currentPrompt: prompt,
       category: null,
+      topic: null, // NEW
       aiResponse: null,
       errorMessage: null,
       currentRequestId: requestId,
@@ -47,14 +49,18 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       transitionTimerId: null,
     });
 
-    // 2. Instant local classification (zero latency/cost)
-    const category = classifyIntent(prompt);
+    // Extract context instantly
+    const context = classifyIntent(prompt);
+
     if (get().currentRequestId === requestId) {
-      set({ state: "WAITING_ACTIVE", category });
+      set({
+        state: "WAITING_ACTIVE",
+        category: context.category,
+        topic: context.topic,
+      });
     }
 
     try {
-      // 3. Fetch from server API (maintains strict client/server boundary)
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,16 +68,12 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
         signal: controller.signal,
       });
 
-      if (!response.ok) {
-        throw new Error("Generation failed");
-      }
-
+      if (!response.ok) throw new Error("Generation failed");
       const data = await response.json();
 
       if (get().currentRequestId === requestId) {
         set({ state: "TRANSITIONING", aiResponse: data.response });
 
-        // 4. Store timer ID in state to prevent global leakage
         const timerId = setTimeout(() => {
           if (get().currentRequestId === requestId) {
             set({ state: "RESPONSE_DISPLAYED", transitionTimerId: null });
@@ -81,11 +83,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
         set({ transitionTimerId: timerId });
       }
     } catch {
-      // CRITICAL: If the request was intentionally aborted (by user or replacement),
-      // do not transition to ERROR. It is a lifecycle event, not a failure.
-      if (controller.signal.aborted) {
-        return;
-      }
+      if (controller.signal.aborted) return;
 
       if (get().currentRequestId === requestId) {
         set({
@@ -107,6 +105,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       state: "IDLE",
       currentPrompt: "",
       category: null,
+      topic: null, // NEW
       aiResponse: null,
       errorMessage: null,
       currentRequestId: null,

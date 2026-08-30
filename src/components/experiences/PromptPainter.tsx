@@ -6,6 +6,7 @@ import { Palette } from "lucide-react";
 
 interface PromptPainterProps {
   isFinishing: boolean;
+  topic?: string;
 }
 
 interface Particle {

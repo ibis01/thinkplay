@@ -6,22 +6,52 @@ import { Zap, Brain, CheckCircle2, XCircle } from "lucide-react";
 
 interface ThinkFastProps {
   isFinishing: boolean;
+  topic?: string;
 }
 
-// Fixed: Replaced all empty strings with actual distinct emojis
-const EMOJI_PAIRS = [
+// Contextual Emoji Library
+const TOPIC_EMOJIS: Record<string, string[][]> = {
+  space: [
+    ["🚀", "🛸"],
+    ["🪐", "🌍"],
+    ["👽", "🤖"],
+    ["️", "🌟"],
+    ["🌕", "🌑"],
+  ],
+  cooking: [
+    ["🍎", "🍏"],
+    ["🍕", "🍔"],
+    ["🍳", "🥓"],
+    ["", "🍺"],
+    ["🍰", "🧁"],
+  ],
+  music: [
+    ["🎸", "🎺"],
+    ["", "🥁"],
+    ["", "🎧"],
+    ["🎵", "🎶"],
+    ["🎼", "🎻"],
+  ],
+  coding: [
+    ["💻", "🖥️"],
+    ["⌨️", "🖱️"],
+    ["🐛", "🔧"],
+    ["📱", "⌚"],
+    ["🤖", ""],
+  ],
+};
+
+const GENERAL_EMOJIS = [
   ["🍎", "🍏"],
-  ["🐶", "🐱"],
+  ["", "🐱"],
   ["🚗", "🚕"],
-  ["⚽", "🏀"],
+  ["⚽", ""],
   ["🌕", "🌑"],
   ["🔥", "💧"],
   ["🎸", "🎺"],
-  ["🍕", "🍔"],
+  ["", "🍔"],
   ["🌲", "🌵"],
   ["🚲", "🐦"],
-  ["🚗", "🛵"],
-  ["🍪", "🍩"],
 ];
 
 interface Challenge {
@@ -29,9 +59,12 @@ interface Challenge {
   oddIndex: number;
 }
 
-export default function ThinkFast({ isFinishing }: ThinkFastProps) {
+export default function ThinkFast({ isFinishing, topic }: ThinkFastProps) {
+  // Select emoji pool based on topic, fallback to general
+  const emojiPool = (topic && TOPIC_EMOJIS[topic]) || GENERAL_EMOJIS;
+
   const generateChallenge = useCallback((): Challenge => {
-    const pair = EMOJI_PAIRS[Math.floor(Math.random() * EMOJI_PAIRS.length)];
+    const pair = emojiPool[Math.floor(Math.random() * emojiPool.length)];
     const isTargetFirst = Math.random() > 0.5;
     const target = isTargetFirst ? pair[0] : pair[1];
     const distractor = isTargetFirst ? pair[1] : pair[0];
@@ -41,7 +74,7 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
     grid[oddIndex] = distractor;
 
     return { grid, oddIndex };
-  }, []);
+  }, [emojiPool]);
 
   const [challenge, setChallenge] = useState<Challenge>(() =>
     generateChallenge(),
@@ -50,7 +83,6 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // Rule 11: Refs to prevent memory leaks from unmounted component state updates
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMounted = useRef(true);
 
@@ -101,7 +133,10 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Brain className="w-3.5 h-3.5 text-purple-400" />
-          Think Fast
+          Think Fast{" "}
+          {topic && (
+            <span className="text-purple-400 normal-case">({topic})</span>
+          )}
         </div>
         <div className="flex items-center gap-1.5 bg-gray-800/50 px-2.5 py-1 rounded-full border border-gray-700">
           <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" />

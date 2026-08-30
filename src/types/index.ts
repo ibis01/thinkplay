@@ -1,5 +1,10 @@
 export type PromptCategory = "coding" | "creative" | "general";
 
+export interface PromptContext {
+  category: PromptCategory;
+  topic: string; // e.g., "react", "python", "space", "cooking"
+}
+
 export type LifecycleState =
   | "IDLE"
   | "REQUEST_STARTING"
