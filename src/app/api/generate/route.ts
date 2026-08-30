@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     );
     clearTimeout(timeoutId);
 
+    // 5. Map provider's structured result to HTTP response (no duplicate abort logic)
     if (result.success) {
       return NextResponse.json({ response: result.response });
     } else {
@@ -71,24 +72,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      // Properly type the AbortError to access the custom reason property
-      const abortError = error as Error & { reason?: string };
-      const reason = abortError.reason;
-
-      if (reason === "timeout") {
-        return NextResponse.json(
-          { error: "The request took too long to process." },
-          { status: 408 },
-        );
-      }
-
-      // client_abort or any other cancellation
-      return NextResponse.json(
-        { error: "Request cancelled." },
-        { status: 499 },
-      );
-    }
+    // Fallback for unexpected, non-abort errors (e.g., JSON parsing failures)
     console.error("API Route Error:", error);
     return NextResponse.json(
       { error: "Internal server error." },
