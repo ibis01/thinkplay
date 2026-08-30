@@ -38,7 +38,6 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
     );
   }, []);
 
-  // Initialize and handle canvas rendering
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -46,7 +45,6 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    // Handle resizing
     const resizeCanvas = () => {
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * window.devicePixelRatio;
@@ -57,19 +55,14 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // Animation loop
     const animate = () => {
       const rect = canvas.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;
 
-      // Clear canvas with slight fade for trail effect
       ctx.clearRect(0, 0, width, height);
-
-      // Additive blending for glowing effect
       ctx.globalCompositeOperation = "lighter";
 
-      // Spawn particles if pointer is active and not finishing
       if (pointerRef.current.isDown && !isFinishing) {
         hueRef.current = (hueRef.current + 2) % 360;
         for (let i = 0; i < 3; i++) {
@@ -77,7 +70,7 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
             x: pointerRef.current.x + (Math.random() - 0.5) * 10,
             y: pointerRef.current.y + (Math.random() - 0.5) * 10,
             vx: (Math.random() - 0.5) * 2,
-            vy: (Math.random() - 0.5) * 2 - 0.5, // Slight upward drift
+            vy: (Math.random() - 0.5) * 2 - 0.5,
             life: 1,
             maxLife: 1,
             size: Math.random() * 8 + 4,
@@ -87,29 +80,23 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
         syncPaintState();
       }
 
-      // Update and draw particles
       for (let i = particlesRef.current.length - 1; i >= 0; i--) {
         const p = particlesRef.current[i];
-
         p.x += p.vx;
         p.y += p.vy;
-        p.life -= 0.015; // Fade rate
+        p.life -= 0.015;
 
         if (p.life <= 0) {
           particlesRef.current.splice(i, 1);
           continue;
         }
 
-        const alpha = p.life;
-        const currentSize = p.size * p.life;
-
         ctx.beginPath();
-        ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${alpha})`;
+        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${p.life})`;
         ctx.fill();
       }
 
-      // Cap max particles for performance
       if (particlesRef.current.length > 400) {
         particlesRef.current.splice(0, particlesRef.current.length - 400);
       }
@@ -126,27 +113,19 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
     };
   }, [isFinishing, syncPaintState]);
 
-  // Pointer and touch handlers
   const getPointerPosition = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return null;
-
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
-    };
+    return { x: clientX - rect.left, y: clientY - rect.top };
   }, []);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
+      // Prevent default to stop scrolling/zooming on touch devices
       e.preventDefault();
       const position = getPointerPosition(e.clientX, e.clientY);
       if (!position) return;
-
-      pointerRef.current = {
-        ...position,
-        isDown: true,
-      };
+      pointerRef.current = { ...position, isDown: true };
     },
     [getPointerPosition],
   );
@@ -156,39 +135,6 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
       e.preventDefault();
       const position = getPointerPosition(e.clientX, e.clientY);
       if (!position) return;
-
-      pointerRef.current.x = position.x;
-      pointerRef.current.y = position.y;
-    },
-    [getPointerPosition],
-  );
-
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent<HTMLCanvasElement>) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      if (!touch) return;
-
-      const position = getPointerPosition(touch.clientX, touch.clientY);
-      if (!position) return;
-
-      pointerRef.current = {
-        ...position,
-        isDown: true,
-      };
-    },
-    [getPointerPosition],
-  );
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent<HTMLCanvasElement>) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      if (!touch) return;
-
-      const position = getPointerPosition(touch.clientX, touch.clientY);
-      if (!position) return;
-
       pointerRef.current.x = position.x;
       pointerRef.current.y = position.y;
     },
@@ -199,13 +145,8 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
     pointerRef.current.isDown = false;
   }, []);
 
-  const handleTouchEnd = useCallback(() => {
-    pointerRef.current.isDown = false;
-  }, []);
-
   return (
     <div className="w-full space-y-3">
-      {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Palette className="w-3.5 h-3.5 text-pink-400" />
@@ -216,9 +157,8 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
         </div>
       </div>
 
-      {/* Canvas Area */}
       <motion.div
-        className="relative w-full h-48 bg-[#0a0a0f] rounded-xl border border-gray-800 overflow-hidden touch-none shadow-inner"
+        className="relative w-full h-48 bg-[#0a0a0f] rounded-xl border border-gray-800 overflow-hidden shadow-inner touch-none"
         animate={
           isFinishing ? { opacity: 0.5, scale: 0.98 } : { opacity: 1, scale: 1 }
         }
@@ -226,17 +166,16 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
       >
         <canvas
           ref={canvasRef}
-          className="w-full h-full cursor-crosshair"
+          className="w-full h-full cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset"
+          role="application"
+          aria-label="Interactive painting canvas. Use your mouse or finger to draw."
+          tabIndex={0}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
         />
 
-        {/* Empty state hint */}
         {!isFinishing && !hasPainted && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-xs text-gray-600 animate-pulse">

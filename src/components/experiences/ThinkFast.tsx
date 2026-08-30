@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Brain, CheckCircle2, XCircle } from "lucide-react";
 
@@ -8,20 +8,20 @@ interface ThinkFastProps {
   isFinishing: boolean;
 }
 
-// Highly distinct emoji pairs for universal recognition
+// Fixed: Replaced all empty strings with actual distinct emojis
 const EMOJI_PAIRS = [
   ["🍎", "🍏"],
-  ["🐶", ""],
+  ["🐶", "🐱"],
   ["🚗", "🚕"],
   ["⚽", "🏀"],
-  ["🌕", ""],
+  ["🌕", "🌑"],
   ["🔥", "💧"],
   ["🎸", "🎺"],
-  ["", "🍔"],
-  ["", "🌵"],
-  ["", "🐦"],
-  ["", "🛵"],
-  ["", "🍩"],
+  ["🍕", "🍔"],
+  ["🌲", "🌵"],
+  ["🚲", "🐦"],
+  ["🚗", "🛵"],
+  ["🍪", "🍩"],
 ];
 
 interface Challenge {
@@ -30,7 +30,6 @@ interface Challenge {
 }
 
 export default function ThinkFast({ isFinishing }: ThinkFastProps) {
-  // Generate a new 3x3 challenge
   const generateChallenge = useCallback((): Challenge => {
     const pair = EMOJI_PAIRS[Math.floor(Math.random() * EMOJI_PAIRS.length)];
     const isTargetFirst = Math.random() > 0.5;
@@ -44,44 +43,61 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
     return { grid, oddIndex };
   }, []);
 
-  const [challenge, setChallenge] = useState<Challenge | null>(() =>
+  const [challenge, setChallenge] = useState<Challenge>(() =>
     generateChallenge(),
   );
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<"correct" | "wrong" | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  const handleTileClick = (index: number) => {
-    if (isFinishing || !challenge || feedback === "correct") return;
+  // Rule 11: Refs to prevent memory leaks from unmounted component state updates
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted = useRef(true);
 
-    setSelectedIndex(index);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      if (advanceTimer.current) clearTimeout(advanceTimer.current);
+    };
+  }, []);
 
-    if (index === challenge.oddIndex) {
-      setFeedback("correct");
-      setScore((prev) => prev + 1);
+  const handleTileClick = useCallback(
+    (index: number) => {
+      if (isFinishing || !challenge || feedback === "correct") return;
 
-      // Auto-advance
-      setTimeout(() => {
-        if (!isFinishing) {
-          setChallenge(generateChallenge());
-          setSelectedIndex(null);
-          setFeedback(null);
-        }
-      }, 600); // Slightly faster than Code Breaker for higher tempo
-    } else {
-      setFeedback("wrong");
-      setTimeout(() => {
-        setFeedback(null);
-        setSelectedIndex(null);
-      }, 400);
-    }
-  };
+      setSelectedIndex(index);
+
+      if (index === challenge.oddIndex) {
+        setFeedback("correct");
+        setScore((prev) => prev + 1);
+
+        if (advanceTimer.current) clearTimeout(advanceTimer.current);
+        advanceTimer.current = setTimeout(() => {
+          if (isMounted.current && !isFinishing) {
+            setChallenge(generateChallenge());
+            setSelectedIndex(null);
+            setFeedback(null);
+          }
+        }, 600);
+      } else {
+        setFeedback("wrong");
+        if (advanceTimer.current) clearTimeout(advanceTimer.current);
+        advanceTimer.current = setTimeout(() => {
+          if (isMounted.current) {
+            setFeedback(null);
+            setSelectedIndex(null);
+          }
+        }, 400);
+      }
+    },
+    [isFinishing, challenge, feedback, generateChallenge],
+  );
 
   if (!challenge) return null;
 
   return (
     <div className="w-full space-y-3">
-      {/* Header / Score */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Brain className="w-3.5 h-3.5 text-purple-400" />
@@ -93,11 +109,12 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
         </div>
       </div>
 
-      {/* 3x3 Grid Area */}
       <motion.div
         className="bg-[#0d1117] rounded-xl border border-gray-800 p-3 shadow-inner"
         animate={feedback === "wrong" ? { x: [-4, 4, -4, 4, 0] } : {}}
         transition={{ duration: 0.3 }}
+        role="group"
+        aria-label="3x3 emoji grid. Find the one that is different."
       >
         <div className="grid grid-cols-3 gap-2">
           <AnimatePresence mode="popLayout">
@@ -105,6 +122,8 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
               const isSelected = selectedIndex === index;
               const isOdd = isSelected && index === challenge.oddIndex;
               const isWrong = isSelected && index !== challenge.oddIndex;
+              const row = Math.floor(index / 3) + 1;
+              const col = (index % 3) + 1;
 
               return (
                 <motion.button
@@ -120,9 +139,11 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
                   }}
                   onClick={() => handleTileClick(index)}
                   disabled={isFinishing}
+                  aria-label={`Row ${row}, Column ${col}: ${emoji}${isSelected ? (isOdd ? " (Correct)" : " (Incorrect)") : ""}`}
                   className={`
                     relative aspect-square flex items-center justify-center 
-                    text-2xl sm:text-3xl rounded-lg transition-all duration-150
+                    text-2xl sm:text-3xl rounded-lg transition-all duration-150 outline-none
+                    focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d1117]
                     ${isOdd ? "bg-green-500/20 ring-2 ring-green-500 scale-110" : ""}
                     ${isWrong ? "bg-red-500/20 ring-2 ring-red-500" : ""}
                     ${!isSelected ? "bg-gray-800/50 hover:bg-gray-700/50 active:scale-95" : ""}
@@ -131,7 +152,6 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
                 >
                   {emoji}
 
-                  {/* Feedback Icons */}
                   <AnimatePresence>
                     {isOdd && (
                       <motion.div
@@ -159,8 +179,7 @@ export default function ThinkFast({ isFinishing }: ThinkFastProps) {
         </div>
       </motion.div>
 
-      {/* Feedback Text */}
-      <div className="h-5 text-center">
+      <div className="h-5 text-center" aria-live="polite">
         <AnimatePresence mode="wait">
           {feedback === "correct" && (
             <motion.p
