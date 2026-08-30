@@ -59,7 +59,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),
-        signal: controller.signal, // Pass abort signal to fetch
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -81,6 +81,12 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
         set({ transitionTimerId: timerId });
       }
     } catch {
+      // CRITICAL: If the request was intentionally aborted (by user or replacement),
+      // do not transition to ERROR. It is a lifecycle event, not a failure.
+      if (controller.signal.aborted) {
+        return;
+      }
+
       if (get().currentRequestId === requestId) {
         set({
           state: "ERROR",

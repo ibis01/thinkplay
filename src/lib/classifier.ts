@@ -1,72 +1,81 @@
 import type { PromptCategory } from "@/types";
 
 export function classifyIntent(prompt: string): PromptCategory {
-  const lower = prompt.toLowerCase();
   const trimmed = prompt.trim();
-
-  const isShort = trimmed.length < 50;
   const hasCodeBlock = trimmed.includes("```");
   const hasTechnicalPunctuation = /[{};=<>]/.test(trimmed);
 
   let codingScore = 0;
   let creativeScore = 0;
 
-  const codingTerms = [
-    "code",
-    "javascript",
+  const strongCodingTerms = [
     "python",
-    "bug",
-    "debug",
-    "api",
+    "javascript",
+    "typescript",
     "react",
-    "function",
-    "css",
-    "html",
-    "error",
-    "fix",
+    "node",
+    "sql",
+    "database",
+    "api",
+    "debug",
+    "bug",
     "compile",
     "algorithm",
-    "database",
-    "sql",
-    "typescript",
-    "node",
-    "server",
     "frontend",
     "backend",
+    "server",
+    "css",
+    "html",
+    "code",
   ];
 
-  const creativeTerms = [
-    "write",
-    "story",
+  const strongCreativeTerms = [
     "poem",
-    "image",
-    "design",
+    "story",
     "logo",
-    "art",
+    "design",
     "draw",
     "paint",
     "creative",
     "imagine",
-    "draft",
     "compose",
     "lyrics",
     "narrative",
-    "character",
     "worldbuilding",
+    "character",
   ];
 
-  codingTerms.forEach((term) => {
-    if (lower.includes(term)) codingScore += 2;
+  // Strong terms carry more weight
+  strongCodingTerms.forEach((term) => {
+    if (new RegExp(`\\b${term}\\b`, "i").test(prompt)) codingScore += 3;
   });
 
-  creativeTerms.forEach((term) => {
-    if (lower.includes(term)) creativeScore += 2;
+  strongCreativeTerms.forEach((term) => {
+    if (new RegExp(`\\b${term}\\b`, "i").test(prompt)) creativeScore += 3;
   });
 
-  if (hasCodeBlock || hasTechnicalPunctuation) codingScore += 5;
-  if (isShort && (lower.includes("write") || lower.includes("give me")))
-    creativeScore += 3;
+  const secondaryCodingTerms = [
+    "function",
+    "error",
+    "fix",
+    "script",
+    "program",
+  ];
+  const secondaryCreativeTerms = ["write", "create", "image", "art", "draft"];
 
+  secondaryCodingTerms.forEach((term) => {
+    if (new RegExp(`\\b${term}\\b`, "i").test(prompt)) codingScore += 1;
+  });
+
+  secondaryCreativeTerms.forEach((term) => {
+    if (new RegExp(`\\b${term}\\b`, "i").test(prompt)) creativeScore += 1;
+  });
+
+  // Structural boosts
+  if (hasCodeBlock) codingScore += 10;
+  if (hasTechnicalPunctuation) codingScore += 5;
+
+  // Final decision
   if (codingScore >= 3 && codingScore > creativeScore) return "coding";
   if (creativeScore >= 3 && creativeScore > codingScore) return "creative";
 

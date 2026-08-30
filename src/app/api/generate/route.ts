@@ -6,6 +6,7 @@ const TIMEOUT_MS = 30000; // 30 seconds hard limit
 
 export async function POST(request: Request) {
   try {
+    // 1. Input Validation
     const body = await request.json();
     if (!body || typeof body !== "object") {
       return NextResponse.json(
@@ -30,17 +31,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // 2. Create timeout controller with explicit reason
     const timeoutController = new AbortController();
-    const timeoutId = setTimeout(
-      () => timeoutController.abort("timeout"),
-      TIMEOUT_MS,
-    );
+    const timeoutId = setTimeout(() => {
+      timeoutController.abort("timeout");
+    }, TIMEOUT_MS);
 
+    // 3. Link client abort to timeout abort
     request.signal.addEventListener("abort", () => {
       timeoutController.abort("client_abort");
       clearTimeout(timeoutId);
     });
 
+    // 4. Call AI Provider with combined signal
     const result = await generateAIResponse(
       prompt.trim(),
       timeoutController.signal,
@@ -69,7 +72,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      // AbortController.abort(reason) stores the reason on the error
+      // Properly type the AbortError to access the custom reason property
       const abortError = error as Error & { reason?: string };
       const reason = abortError.reason;
 
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
         );
       }
 
-      // client_abort or any other abort reason
+      // client_abort or any other cancellation
       return NextResponse.json(
         { error: "Request cancelled." },
         { status: 499 },
