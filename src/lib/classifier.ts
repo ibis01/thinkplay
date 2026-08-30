@@ -1,6 +1,5 @@
 import type { PromptCategory, PromptContext } from "@/types";
 
-// Topic mapping for local extraction
 const TOPIC_KEYWORDS: Record<string, string[]> = {
   react: ["react", "jsx", "hooks", "component", "nextjs", "next.js"],
   python: ["python", "django", "flask", "pip", "pandas"],
@@ -10,10 +9,14 @@ const TOPIC_KEYWORDS: Record<string, string[]> = {
   music: ["music", "song", "guitar", "piano", "lyrics", "band"],
 };
 
+// Helper for safe word-boundary matching (prevents "js" matching inside "json")
+const containsKeyword = (text: string, keyword: string) => {
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`, "i").test(text);
+};
+
 export function classifyIntent(prompt: string): PromptContext {
   const trimmed = prompt.trim();
-  const lower = trimmed.toLowerCase();
-
   const hasCodeBlock = trimmed.includes("```");
   const hasTechnicalPunctuation = /[{};=<>]/.test(trimmed);
 
@@ -58,7 +61,6 @@ export function classifyIntent(prompt: string): PromptContext {
     "character",
   ];
 
-  // 1. Calculate Scores
   strongCodingTerms.forEach((term) => {
     if (new RegExp(`\\b${term}\\b`, "i").test(prompt)) codingScore += 3;
   });
@@ -87,15 +89,14 @@ export function classifyIntent(prompt: string): PromptContext {
   if (hasCodeBlock) codingScore += 10;
   if (hasTechnicalPunctuation) codingScore += 5;
 
-  // 2. Extract Topic (Local Context Engine)
+  // Safe topic extraction using word boundaries
   for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
-    if (keywords.some((kw) => lower.includes(kw))) {
+    if (keywords.some((kw) => containsKeyword(prompt, kw))) {
       detectedTopic = topic;
-      break; // Take the first strong match
+      break;
     }
   }
 
-  // 3. Determine Category
   let category: PromptCategory = "general";
   if (codingScore >= 3 && codingScore > creativeScore) category = "coding";
   else if (creativeScore >= 3 && creativeScore > codingScore)

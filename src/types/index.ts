@@ -2,7 +2,7 @@ export type PromptCategory = "coding" | "creative" | "general";
 
 export interface PromptContext {
   category: PromptCategory;
-  topic: string; // e.g., "react", "python", "space", "cooking"
+  topic: string;
 }
 
 export type LifecycleState =
