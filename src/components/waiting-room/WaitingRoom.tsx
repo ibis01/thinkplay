@@ -2,18 +2,23 @@
 
 import { motion } from "framer-motion";
 import { useThinkPlayStore } from "@/store/thinkplayStore";
-import { Sparkles, Code, Palette, Brain } from "lucide-react";
+import { Sparkles, Code, Palette, Brain, Loader2 } from "lucide-react";
 import CodeBreaker from "@/components/experiences/CodeBreaker";
 import PromptPainter from "@/components/experiences/PromptPainter";
 import ThinkFast from "@/components/experiences/ThinkFast";
 
 export default function WaitingRoom() {
-  const { state, category, currentPrompt } = useThinkPlayStore();
+  const { state, category } = useThinkPlayStore();
 
-  if (state !== "WAITING_ACTIVE" && state !== "TRANSITIONING_TO_RESPONSE")
+  if (
+    state !== "REQUEST_STARTING" &&
+    state !== "WAITING_ACTIVE" &&
+    state !== "TRANSITIONING"
+  )
     return null;
 
-  const isFinishing = state === "TRANSITIONING_TO_RESPONSE";
+  const isDetecting = state === "REQUEST_STARTING";
+  const isFinishing = state === "TRANSITIONING";
 
   const getCategoryIcon = () => {
     switch (category) {
@@ -49,45 +54,57 @@ export default function WaitingRoom() {
       transition={{ duration: 0.6, ease: "easeInOut" }}
       className="w-full max-w-md mx-auto bg-gray-950 border border-gray-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden"
     >
-      {/* Ambient Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-40 bg-purple-600/10 blur-3xl rounded-full pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-center text-center space-y-5">
-        {/* Header Section */}
         <div className="space-y-2">
           <motion.div
             animate={
-              isFinishing ? {} : { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }
+              isFinishing
+                ? {}
+                : isDetecting
+                  ? { rotate: 360 }
+                  : { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }
             }
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            transition={
+              isDetecting
+                ? { duration: 1, repeat: Infinity, ease: "linear" }
+                : { duration: 3, repeat: Infinity, ease: "easeInOut" }
+            }
             className="p-3 bg-gray-900 rounded-full border border-gray-800 inline-flex"
           >
-            {getCategoryIcon()}
+            {isDetecting ? (
+              <Loader2 className="w-6 h-6 text-purple-400" />
+            ) : (
+              getCategoryIcon()
+            )}
           </motion.div>
           <h3 className="text-lg font-bold text-white flex items-center justify-center gap-2">
             <Sparkles className="w-4 h-4 text-yellow-400" />
-            AI is Thinking
+            {isDetecting ? "Detecting Context" : "AI is Thinking"}
           </h3>
-          <p className="text-xs text-gray-400">
-            Detected:{" "}
-            <span className="text-purple-400 font-semibold">
-              {getCategoryLabel()}
-            </span>
-          </p>
-        </div>
-
-        {/* Experience Router - NOW 100% COMPLETE */}
-        <div className="w-full">
-          {category === "coding" ? (
-            <CodeBreaker isFinishing={isFinishing} />
-          ) : category === "creative" ? (
-            <PromptPainter isFinishing={isFinishing} />
-          ) : (
-            <ThinkFast isFinishing={isFinishing} />
+          {!isDetecting && (
+            <p className="text-xs text-gray-400">
+              Detected:{" "}
+              <span className="text-purple-400 font-semibold">
+                {getCategoryLabel()}
+              </span>
+            </p>
           )}
         </div>
 
-        {/* Progress Indicator */}
+        {!isDetecting && (
+          <div className="w-full">
+            {category === "coding" ? (
+              <CodeBreaker isFinishing={isFinishing} />
+            ) : category === "creative" ? (
+              <PromptPainter isFinishing={isFinishing} />
+            ) : (
+              <ThinkFast isFinishing={isFinishing} />
+            )}
+          </div>
+        )}
+
         <motion.div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-purple-500 to-pink-500"

@@ -1,26 +1,27 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useThinkPlayStore } from '@/store/thinkplayStore';
-import WaitingRoom from "../components/waiting-room/WaitingRoom";
-import { Send, RefreshCw, Sparkles } from 'lucide-react';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useThinkPlayStore } from "@/store/thinkplayStore";
+import WaitingRoom from "@/components/waiting-room/WaitingRoom";
+import { Send, RefreshCw, Sparkles, AlertCircle } from "lucide-react";
 
 export default function Home() {
-  const [inputValue, setInputValue] = useState('');
-  const { state, aiResponse, submitRequest, reset } = useThinkPlayStore();
+  const [inputValue, setInputValue] = useState("");
+  const { state, aiResponse, errorMessage, submitRequest, reset } =
+    useThinkPlayStore();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || state !== "IDLE") return;
     const promptToSubmit = inputValue;
-    setInputValue('');
+    setInputValue("");
     submitRequest(promptToSubmit);
   };
 
   const handleNewPrompt = () => {
     reset();
-    setInputValue('');
+    setInputValue("");
   };
 
   return (
@@ -30,11 +31,15 @@ export default function Home() {
           <h1 className="text-3xl sm:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
             ThinkPlay
           </h1>
-          <p className="text-gray-400 text-sm sm:text-base">Your AI is thinking. Your time isn&apos;t wasted.</p>
+          <p className="text-gray-400 text-sm sm:text-base">
+            Your AI is thinking. Your time isn&apos;t wasted.
+          </p>
         </div>
 
         <AnimatePresence mode="wait">
-          {(state === "IDLE" || state === "RESPONSE_DISPLAYED") && (
+          {(state === "IDLE" ||
+            state === "RESPONSE_DISPLAYED" ||
+            state === "ERROR") && (
             <motion.form
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -49,16 +54,18 @@ export default function Home() {
                   placeholder="Try: 'Fix this React bug', 'Write a poem about space', or 'Explain quantum physics'"
                   className="w-full bg-gray-900 border border-gray-800 rounded-2xl p-4 pr-14 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 resize-none h-32 transition-all"
                   disabled={state !== "IDLE"}
+                  aria-label="Enter your prompt for the AI"
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim() || state !== "IDLE"}
                   className="absolute bottom-4 right-4 p-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-xl transition-colors"
+                  aria-label="Submit prompt"
                 >
                   <Send className="w-5 h-5" />
                 </button>
               </div>
-              
+
               {state === "RESPONSE_DISPLAYED" && (
                 <button
                   type="button"
@@ -69,13 +76,48 @@ export default function Home() {
                   Start New Request
                 </button>
               )}
+
+              {state === "ERROR" && (
+                <button
+                  type="button"
+                  onClick={handleNewPrompt}
+                  className="w-full py-3 flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 border border-gray-800 text-gray-300 rounded-xl transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Try Again
+                </button>
+              )}
             </motion.form>
           )}
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {(state === "WAITING_ACTIVE" || state === "TRANSITIONING_TO_RESPONSE") && (
-            <WaitingRoom key="waiting-room" />
+          {(state === "REQUEST_STARTING" ||
+            state === "WAITING_ACTIVE" ||
+            state === "TRANSITIONING") && <WaitingRoom key="waiting-room" />}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {state === "ERROR" && (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              className="w-full max-w-md mx-auto bg-red-950/20 border border-red-900/50 rounded-2xl p-6 shadow-xl text-center space-y-4"
+              role="alert"
+            >
+              <div className="flex items-center justify-center gap-2 text-red-400 mb-2">
+                <AlertCircle className="w-5 h-5" />
+                <span className="font-semibold text-sm uppercase tracking-wider">
+                  Generation Failed
+                </span>
+              </div>
+              <p className="text-gray-300 text-sm">
+                {errorMessage ||
+                  "An unexpected error occurred while processing your request."}
+              </p>
+            </motion.div>
           )}
         </AnimatePresence>
 
@@ -87,10 +129,14 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
               className="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 shadow-xl"
+              role="status"
+              aria-live="polite"
             >
               <div className="flex items-center gap-2 mb-4 text-purple-400">
                 <Sparkles className="w-5 h-5" />
-                <span className="font-semibold text-sm uppercase tracking-wider">AI Response Ready</span>
+                <span className="font-semibold text-sm uppercase tracking-wider">
+                  AI Response Ready
+                </span>
               </div>
               <div className="text-gray-300 whitespace-pre-wrap leading-relaxed font-mono text-sm sm:text-base">
                 {aiResponse}

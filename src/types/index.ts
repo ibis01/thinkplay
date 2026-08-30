@@ -1,13 +1,12 @@
 export type PromptCategory = "coding" | "creative" | "general";
 
-export type LifecycleState = 
+export type LifecycleState =
   | "IDLE"
-  | "CLASSIFYING"
+  | "REQUEST_STARTING"
   | "WAITING_ACTIVE"
-  | "TRANSITIONING_TO_RESPONSE"
+  | "TRANSITIONING"
   | "RESPONSE_DISPLAYED"
   | "ERROR";
-
 export interface AIRequestConfig {
   prompt: string;
   category: PromptCategory;

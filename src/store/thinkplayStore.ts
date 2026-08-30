@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { LifecycleState, PromptCategory } from "@/types";
-import { classifyPrompt } from "@/lib/classifier";
 
 interface ThinkPlayState {
   state: LifecycleState;
@@ -12,7 +11,7 @@ interface ThinkPlayState {
   reset: () => void;
 }
 
-export const useThinkPlayStore = create<ThinkPlayState>((set) => ({
+export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   state: "IDLE",
   currentPrompt: "",
   category: null,
@@ -20,50 +19,66 @@ export const useThinkPlayStore = create<ThinkPlayState>((set) => ({
   errorMessage: null,
 
   submitRequest: async (prompt: string) => {
-    const category = classifyPrompt(prompt);
-
     set({
-      state: "CLASSIFYING",
+      state: "REQUEST_STARTING",
       currentPrompt: prompt,
-      category,
+      category: null,
       aiResponse: null,
       errorMessage: null,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    set({ state: "WAITING_ACTIVE" });
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    };
+
+    // Fire classification — updates state independently when it resolves
+    const classifyPromise = fetch("/api/classify", requestOptions)
+      .then((r) => r.json())
+      .then((d) => {
+        const cat = (d.category as PromptCategory) || "general";
+        // Only update if we're still waiting for classification
+        if (get().state === "REQUEST_STARTING") {
+          set({ state: "WAITING_ACTIVE", category: cat });
+        }
+        return cat;
+      })
+      .catch(() => {
+        if (get().state === "REQUEST_STARTING") {
+          set({ state: "WAITING_ACTIVE", category: "general" });
+        }
+        return "general" as PromptCategory;
+      });
+
+    // Fire generation — awaited to handle response/error
+    const generatePromise = fetch("/api/generate", requestOptions)
+      .then((r) => {
+        if (!r.ok) throw new Error("Generation failed");
+        return r.json();
+      })
+      .then((d) => d.response as string);
 
     try {
-      // 🌟 THE PRO-MOVE: Run the AI request and a 3.5s timer in parallel.
-      // This guarantees the user has time to play the mini-game!
-      const [apiResult] = await Promise.all([
-        fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        }),
-        new Promise((resolve) => setTimeout(resolve, 3500)), // Minimum 3.5s play time
-      ]);
-
-      if (!apiResult.ok) {
-        throw new Error("AI generation failed");
-      }
-
-      const data = await apiResult.json();
-
-      set({ state: "TRANSITIONING_TO_RESPONSE", aiResponse: data.response });
-
+      const response = await generatePromise;
+      const currentCategory = get().category || "general";
+      set({
+        state: "TRANSITIONING",
+        aiResponse: response,
+        category: currentCategory,
+      });
       setTimeout(() => {
         set({ state: "RESPONSE_DISPLAYED" });
-      }, 800);
-    } catch (error) {
-      console.error("AI Request Error:", error);
+      }, 600);
+    } catch {
       set({
         state: "ERROR",
-        errorMessage:
-          "Failed to generate response. Did you add your GROQ_API_KEY to .env.local?",
+        errorMessage: "We couldn't generate your response. Please try again.",
       });
     }
+
+    // Ensure classify promise doesn't produce unhandled rejection
+    classifyPromise.catch(() => {});
   },
 
   reset: () => {

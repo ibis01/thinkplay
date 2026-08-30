@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateAIResponse } from "@/lib/ai-provider";
+import { classifyIntent } from "@/lib/ai-provider";
 
 const MAX_PROMPT_LENGTH = 2000;
 
@@ -32,21 +32,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await generateAIResponse(prompt.trim());
-
-    if (result.success) {
-      return NextResponse.json({ response: result.response });
-    } else {
-      return NextResponse.json(
-        { error: "Failed to generate response." },
-        { status: 500 },
-      );
-    }
+    const category = await classifyIntent(prompt.trim());
+    return NextResponse.json({ category });
   } catch (error) {
-    console.error("API Route Error:", error);
-    return NextResponse.json(
-      { error: "Internal server error." },
-      { status: 500 },
-    );
+    console.error("Classify Route Error:", error);
+    return NextResponse.json({ category: "general" }, { status: 200 });
   }
 }
