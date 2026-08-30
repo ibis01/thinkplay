@@ -57,9 +57,19 @@ export async function generateAIResponse(prompt: string) {
       temperature: 0.7,
     });
 
-    let fullText = "";
-    for await (const chunk of result.textStream) {
-      fullText += chunk;
+    // Wrap the stream consumption in a timeout to prevent infinite hanging
+    const streamPromise = (async () => {
+      let fullText = "";
+      for await (const chunk of result.textStream) {
+        fullText += chunk;
+      }
+      return fullText;
+    })();
+
+    const fullText = await withTimeout(streamPromise, 30000, "");
+
+    if (!fullText) {
+      return { success: false, error: "Response timed out." };
     }
 
     return { success: true, response: fullText };
