@@ -1,40 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useThinkPlayStore } from "./thinkplayStore";
+import * as aiProvider from "@/lib/ai-provider";
 
-// Mock global fetch
-global.fetch = vi.fn();
+// Mock the AI provider module
+vi.mock("@/lib/ai-provider", () => ({
+  generateAIResponse: vi.fn(),
+}));
 
 describe("ThinkPlay Store", () => {
   beforeEach(() => {
-    // Reset store to initial state before each test
     useThinkPlayStore.getState().reset();
     vi.clearAllMocks();
-    vi.useFakeTimers(); // Enable fake timers for setTimeout
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    vi.useRealTimers(); // Restore real timers after each test
+    vi.useRealTimers();
   });
 
   it("should transition through states correctly on success", async () => {
-    // Mock fetch to handle BOTH classify and generate calls
-    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
-      (url: string) => {
-        if (url === "/api/classify") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ category: "coding" }),
-          });
-        }
-        if (url === "/api/generate") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ response: "Mocked AI response" }),
-          });
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      },
-    );
+    // Mock successful AI response
+    vi.mocked(aiProvider.generateAIResponse).mockResolvedValueOnce({
+      success: true,
+      response: "Mocked AI response",
+    });
 
     const { submitRequest } = useThinkPlayStore.getState();
 
@@ -44,45 +33,31 @@ describe("ThinkPlay Store", () => {
     // 2. Trigger request
     const requestPromise = submitRequest("Test prompt");
 
-    // 3. Check immediate transition
-    expect(useThinkPlayStore.getState().state).toBe("REQUEST_STARTING");
-
-    // Wait for the async fetch operations to complete
+    // Note: Because classifyIntent is now synchronous, the state
+    // may instantly be WAITING_ACTIVE by the time we check it.
+    // We will await the promise and check the pre-transition state.
     await requestPromise;
 
-    // 4. After fetch resolves, it should be in TRANSITIONING
+    // 3. After generation resolves, it should be TRANSITIONING
     expect(useThinkPlayStore.getState().state).toBe("TRANSITIONING");
     expect(useThinkPlayStore.getState().aiResponse).toBe("Mocked AI response");
 
-    // 5. Fast-forward the 600ms animation delay
+    // 4. Fast-forward the 600ms animation delay
     vi.advanceTimersByTime(600);
 
-    // 6. Check final state
+    // 5. Check final state
     expect(useThinkPlayStore.getState().state).toBe("RESPONSE_DISPLAYED");
   });
 
   it("should transition to ERROR state on API failure", async () => {
-    // Mock fetch: classify succeeds, but generate fails
-    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
-      (url: string) => {
-        if (url === "/api/classify") {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ category: "general" }),
-          });
-        }
-        if (url === "/api/generate") {
-          return Promise.resolve({
-            ok: false, // Simulate server error
-          });
-        }
-        return Promise.reject(new Error("Unknown URL"));
-      },
-    );
+    // Mock failed AI response
+    vi.mocked(aiProvider.generateAIResponse).mockResolvedValueOnce({
+      success: false,
+      error: "Generation failed",
+    });
 
     const { submitRequest } = useThinkPlayStore.getState();
 
-    // Trigger request
     await submitRequest("Test prompt");
 
     // Check error state
@@ -91,7 +66,7 @@ describe("ThinkPlay Store", () => {
       "We couldn't generate your response. Please try again.",
     );
 
-    // CRITICAL CHECK: Ensure no secrets are leaked in the error message
+    // CRITICAL CHECK: Ensure no secrets are leaked
     expect(useThinkPlayStore.getState().errorMessage).not.toContain("API_KEY");
     expect(useThinkPlayStore.getState().errorMessage).not.toContain(".env");
   });
@@ -99,13 +74,15 @@ describe("ThinkPlay Store", () => {
   it("should reset to IDLE state cleanly", () => {
     const { reset } = useThinkPlayStore.getState();
 
-    // Manually set to error state first
+    // Manually set to error state first with all properties
     useThinkPlayStore.setState({
       state: "ERROR",
       currentPrompt: "test",
       category: "general",
       aiResponse: "test",
       errorMessage: "test",
+      currentRequestId: "123",
+      abortController: new AbortController(),
     });
 
     // Reset
@@ -117,5 +94,7 @@ describe("ThinkPlay Store", () => {
     expect(state.category).toBeNull();
     expect(state.aiResponse).toBeNull();
     expect(state.errorMessage).toBeNull();
+    expect(state.currentRequestId).toBeNull();
+    expect(state.abortController).toBeNull();
   });
 });
