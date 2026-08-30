@@ -34,6 +34,7 @@ export function classifyIntent(prompt: string): PromptCategory {
     "frontend",
     "backend",
   ];
+
   const creativeTerms = [
     "write",
     "story",
@@ -57,6 +58,7 @@ export function classifyIntent(prompt: string): PromptCategory {
   codingTerms.forEach((term) => {
     if (lower.includes(term)) codingScore += 2;
   });
+
   creativeTerms.forEach((term) => {
     if (lower.includes(term)) creativeScore += 2;
   });

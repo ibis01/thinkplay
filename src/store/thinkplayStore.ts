@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { LifecycleState, PromptCategory } from "@/types";
 import { classifyIntent } from "@/lib/classifier";
-import { generateAIResponse } from "@/lib/ai-provider";
 
 interface ThinkPlayState {
   state: LifecycleState;
@@ -11,11 +10,10 @@ interface ThinkPlayState {
   errorMessage: string | null;
   currentRequestId: string | null;
   abortController: AbortController | null;
+  transitionTimerId: ReturnType<typeof setTimeout> | null;
   submitRequest: (prompt: string) => Promise<void>;
   reset: () => void;
 }
-
-let transitionTimer: ReturnType<typeof setTimeout> | null = null;
 
 export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   state: "IDLE",
@@ -25,12 +23,15 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   errorMessage: null,
   currentRequestId: null,
   abortController: null,
+  transitionTimerId: null,
 
   submitRequest: async (prompt: string) => {
-    if (transitionTimer) clearTimeout(transitionTimer);
-
+    // 1. Cleanup previous request lifecycle
     const existingController = get().abortController;
     if (existingController) existingController.abort();
+
+    const existingTimer = get().transitionTimerId;
+    if (existingTimer) clearTimeout(existingTimer);
 
     const requestId = crypto.randomUUID();
     const controller = new AbortController();
@@ -43,27 +44,41 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       errorMessage: null,
       currentRequestId: requestId,
       abortController: controller,
+      transitionTimerId: null,
     });
 
+    // 2. Instant local classification (zero latency/cost)
     const category = classifyIntent(prompt);
-
     if (get().currentRequestId === requestId) {
       set({ state: "WAITING_ACTIVE", category });
     }
 
     try {
-      const result = await generateAIResponse(prompt, controller.signal);
+      // 3. Fetch from server API (maintains strict client/server boundary)
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+        signal: controller.signal, // Pass abort signal to fetch
+      });
 
-      if (!result.success) throw new Error(result.error || "Generation failed");
+      if (!response.ok) {
+        throw new Error("Generation failed");
+      }
+
+      const data = await response.json();
 
       if (get().currentRequestId === requestId) {
-        set({ state: "TRANSITIONING", aiResponse: result.response });
+        set({ state: "TRANSITIONING", aiResponse: data.response });
 
-        transitionTimer = setTimeout(() => {
+        // 4. Store timer ID in state to prevent global leakage
+        const timerId = setTimeout(() => {
           if (get().currentRequestId === requestId) {
-            set({ state: "RESPONSE_DISPLAYED" });
+            set({ state: "RESPONSE_DISPLAYED", transitionTimerId: null });
           }
         }, 600);
+
+        set({ transitionTimerId: timerId });
       }
     } catch {
       if (get().currentRequestId === requestId) {
@@ -76,9 +91,11 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   },
 
   reset: () => {
-    if (transitionTimer) clearTimeout(transitionTimer);
     const controller = get().abortController;
     if (controller) controller.abort();
+
+    const timerId = get().transitionTimerId;
+    if (timerId) clearTimeout(timerId);
 
     set({
       state: "IDLE",
@@ -88,6 +105,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       errorMessage: null,
       currentRequestId: null,
       abortController: null,
+      transitionTimerId: null,
     });
   },
 }));

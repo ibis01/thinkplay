@@ -18,7 +18,7 @@ export async function generateAIResponse(prompt: string, signal?: AbortSignal) {
     return { success: true, response: result.text };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      return { success: false, error: "Request cancelled." };
+      return { success: false, error: "Timeout" };
     }
     console.error("AI Provider Error:", error);
     return { success: false, error: "Failed to generate response." };

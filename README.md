@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ThinkPlay
 
-## Getting Started
+> Transforming unavoidable AI waiting time into meaningful, contextual, enjoyable interaction — without ever slowing down the AI.
 
-First, run the development server:
+## 🚀 The Problem
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Generative AI is powerful, but latency is unavoidable. Users stare at spinning loaders, wasting cognitive momentum and disengaging from the workflow.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 💡 The Solution
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ThinkPlay intercepts AI latency and fills it with micro-interactions tailored to the user's intent. The AI request starts immediately in the background. While it processes, the user engages in a contextual mini-game. The moment the AI responds, the experience transitions gracefully. **We never artificially delay the AI to extend game time.**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🏗 Architecture
 
-## Learn More
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **State Management**: Zustand (with Request ID guarding, AbortController lifecycle, and zero global leakage)
+- **AI Provider**: OpenRouter (Qwen 2.5 72B) via `ai` SDK
+- **Routing**: Instant, multi-signal local heuristic classification (zero latency, zero extra API calls)
+- **Styling**: Tailwind CSS + Framer Motion
+- **Testing**: Vitest
 
-To learn more about Next.js, take a look at the following resources:
+### Request Lifecycle
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **User Input** → Validated on client and server.
+2. **Request Starting** → `AbortController` initialized, `requestId` generated.
+3. **Local Classification** → Instant heuristic routing determines the experience.
+4. **Waiting Active** → Contextual mini-game rendered.
+5. **Generation** → Server processes request. If client aborts or 30s timeout is reached, `AbortSignal` cancels the provider call, saving resources.
+6. **Transitioning** → 600ms graceful UI handoff.
+7. **Response Displayed** → AI output presented.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠 Setup
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ibis01/thinkplay.git
+   cd thinkplay
+   ```
