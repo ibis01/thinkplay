@@ -3,10 +3,10 @@ import { generateAIResponse } from "@/lib/ai-provider";
 
 const MAX_PROMPT_LENGTH = 2000;
 const TIMEOUT_MS = 30000;
-
-
-
 export async function POST(request: Request) {
+  console.log("API KEY LOADED:", process.env.OPENROUTER_API_KEY ? "YES (masked)" : "NO");
+  console.log("KEY LENGTH:", process.env.OPENROUTER_API_KEY?.length || 0);
+
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutController = new AbortController();
 

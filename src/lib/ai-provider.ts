@@ -9,7 +9,7 @@ const openrouter = createOpenAI({
 export async function generateAIResponse(prompt: string, signal?: AbortSignal) {
   try {
     const result = await generateText({
-      model: openrouter("qwen/qwen-2.5-72b-instruct:free"),
+      model: openrouter("qwen/qwen-2.5-72b-instruct"),
       prompt: `You are ThinkPlay AI. Provide a concise, helpful response. Keep it under 150 words. User request: "${prompt}"`,
       temperature: 0.7,
       abortSignal: signal,
@@ -17,10 +17,10 @@ export async function generateAIResponse(prompt: string, signal?: AbortSignal) {
 
     return { success: true, response: result.text };
   } catch (error) {
-    // The authoritative source of cancellation is the signal itself
-    if (signal?.aborted) {
-      const reason = signal.reason;
+    if (error instanceof Error && error.name === "AbortError") {
+      const reason = signal?.reason;
       const errorReason = reason === "timeout" ? "timeout" : "client_abort";
+
       return { success: false, error: errorReason };
     }
 
