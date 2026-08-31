@@ -16,7 +16,6 @@ interface Particle {
   vx: number;
   vy: number;
   life: number;
-  maxLife: number;
   size: number;
   hue: number;
 }
@@ -37,16 +36,12 @@ export default function PromptPainter({
   const [hasPainted, setHasPainted] = useState(false);
 
   const syncPaintState = useCallback(() => {
-    const nextHasPainted = particlesRef.current.length > 0;
-    setHasPainted((previous) =>
-      previous === nextHasPainted ? previous : nextHasPainted,
-    );
+    setHasPainted(particlesRef.current.length > 0);
   }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
@@ -56,16 +51,12 @@ export default function PromptPainter({
       canvas.height = rect.height * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
-
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
     const animate = () => {
       const rect = canvas.getBoundingClientRect();
-      const width = rect.width;
-      const height = rect.height;
-
-      ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, rect.width, rect.height);
       ctx.globalCompositeOperation = "lighter";
 
       if (pointerRef.current.isDown && !isFinishing) {
@@ -77,7 +68,6 @@ export default function PromptPainter({
             vx: (Math.random() - 0.5) * 2,
             vy: (Math.random() - 0.5) * 2 - 0.5,
             life: 1,
-            maxLife: 1,
             size: Math.random() * 8 + 4,
             hue: hueRef.current + (Math.random() - 0.5) * 40,
           });
@@ -90,26 +80,20 @@ export default function PromptPainter({
         p.x += p.vx;
         p.y += p.vy;
         p.life -= 0.015;
-
         if (p.life <= 0) {
           particlesRef.current.splice(i, 1);
           continue;
         }
-
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
         ctx.fillStyle = `hsla(${p.hue}, 80%, 60%, ${p.life})`;
         ctx.fill();
       }
-
-      if (particlesRef.current.length > 400) {
+      if (particlesRef.current.length > 400)
         particlesRef.current.splice(0, particlesRef.current.length - 400);
-      }
-
       syncPaintState();
       animationFrameRef.current = requestAnimationFrame(animate);
     };
-
     animate();
 
     return () => {
@@ -128,8 +112,7 @@ export default function PromptPainter({
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       e.preventDefault();
       const position = getPointerPosition(e.clientX, e.clientY);
-      if (!position) return;
-      pointerRef.current = { ...position, isDown: true };
+      if (position) pointerRef.current = { ...position, isDown: true };
     },
     [getPointerPosition],
   );
@@ -138,9 +121,10 @@ export default function PromptPainter({
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       e.preventDefault();
       const position = getPointerPosition(e.clientX, e.clientY);
-      if (!position) return;
-      pointerRef.current.x = position.x;
-      pointerRef.current.y = position.y;
+      if (position) {
+        pointerRef.current.x = position.x;
+        pointerRef.current.y = position.y;
+      }
     },
     [getPointerPosition],
   );
@@ -161,11 +145,7 @@ export default function PromptPainter({
             </span>
           )}
         </div>
-        <div className="text-xs text-gray-500">
-          {isFinishing ? "Finalizing..." : "Touch & drag to paint"}
-        </div>
       </div>
-
       <motion.div
         className="relative w-full h-48 bg-[#0a0a0f] rounded-xl border border-gray-800 overflow-hidden shadow-inner touch-none"
         animate={
@@ -177,14 +157,13 @@ export default function PromptPainter({
           ref={canvasRef}
           className="w-full h-full cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset"
           role="application"
-          aria-label="Interactive painting canvas. Use your mouse or finger to draw."
+          aria-label="Interactive painting canvas"
           tabIndex={0}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         />
-
         {!isFinishing && !hasPainted && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-xs text-gray-600 animate-pulse text-center px-4">

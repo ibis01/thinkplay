@@ -10,63 +10,34 @@ interface CodeChallenge {
   buggyLineIndex: number;
 }
 
-const TOPIC_CHALLENGES: Record<string, CodeChallenge[]> = {
-  react: [
-    {
-      lines: [
-        "function Counter() {",
-        "  const [count, setCount] = useState(0)",
-        "  return <button>{count}</button>",
-        "}",
-      ],
-      buggyLineIndex: 1,
-    },
-    {
-      lines: [
-        "const User = ({ name }) => {",
-        "  return <h1>Hello {name}</h1>",
-        "}",
-        "export default User;",
-      ],
-      buggyLineIndex: 0,
-    },
-    {
-      lines: [
-        "useEffect(() => {",
-        "  fetchData()",
-        "}, [])",
-        "import { useEffect } from 'react'",
-      ],
-      buggyLineIndex: 3,
-    },
-  ],
-  python: [
-    {
-      lines: [
-        "def greet(name):",
-        "    print(f'Hello {name}')",
-        "greet('World'",
-      ],
-      buggyLineIndex: 2,
-    },
-    { lines: ["for i in range(10)", "    print(i)"], buggyLineIndex: 0 },
-    { lines: ["if x = 5:", "    return True"], buggyLineIndex: 0 },
-  ],
-  javascript: [
-    {
-      lines: [
-        "const arr = [1, 2, 3];",
-        "arr.map(x => x * 2",
-        "console.log(arr);",
-      ],
-      buggyLineIndex: 1,
-    },
-    {
-      lines: ["function add(a, b) {", "  return a + b", "}", "add(1, 2"],
-      buggyLineIndex: 3,
-    },
-  ],
-};
+const REACT_CHALLENGES: CodeChallenge[] = [
+  {
+    lines: [
+      "function Counter() {",
+      "  const [count, setCount] = useState(0)",
+      "  return <button>{count}</button>",
+      "}",
+    ],
+    buggyLineIndex: 1,
+  },
+  {
+    lines: [
+      "const User = ({ name }) => {",
+      "  return <h1>Hello {name}</h1>",
+      "}",
+      "export default User;",
+    ],
+    buggyLineIndex: 0,
+  },
+];
+
+const PYTHON_CHALLENGES: CodeChallenge[] = [
+  {
+    lines: ["def greet(name):", "    print(f'Hello {name}')", "greet('World'"],
+    buggyLineIndex: 2,
+  },
+  { lines: ["for i in range(10)", "    print(i)"], buggyLineIndex: 0 },
+];
 
 const GENERAL_CHALLENGES: CodeChallenge[] = [
   { lines: ["if (x = 5) {", "  return true;", "}"], buggyLineIndex: 0 },
@@ -78,16 +49,6 @@ const GENERAL_CHALLENGES: CodeChallenge[] = [
     ],
     buggyLineIndex: 1,
   },
-  {
-    lines: [
-      "try {",
-      "  riskyOperation();",
-      "catch (e) {",
-      "  console.error(e);",
-      "}",
-    ],
-    buggyLineIndex: 2,
-  },
 ];
 
 interface CodeBreakerProps {
@@ -96,7 +57,13 @@ interface CodeBreakerProps {
 }
 
 export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
-  const challengePool = TOPIC_CHALLENGES[config.theme] || GENERAL_CHALLENGES;
+  // Select pool based on theme
+  const challengePool =
+    config.theme === "react"
+      ? REACT_CHALLENGES
+      : config.theme === "python"
+        ? PYTHON_CHALLENGES
+        : GENERAL_CHALLENGES;
 
   const [challenge, setChallenge] = useState<CodeChallenge>(
     () => challengePool[Math.floor(Math.random() * challengePool.length)],
@@ -127,18 +94,14 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
   const handleLineSelect = useCallback(
     (index: number) => {
       if (isFinishing || feedback === "correct") return;
-
       setSelectedLine(index);
 
       if (index === challenge.buggyLineIndex) {
         setFeedback("correct");
         setScore((prev) => prev + 1);
-
         if (advanceTimer.current) clearTimeout(advanceTimer.current);
         advanceTimer.current = setTimeout(() => {
-          if (isMounted.current && !isFinishing) {
-            pickNewChallenge();
-          }
+          if (isMounted.current && !isFinishing) pickNewChallenge();
         }, 800);
       } else {
         setFeedback("wrong");
@@ -153,13 +116,6 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
     },
     [isFinishing, feedback, challenge.buggyLineIndex, pickNewChallenge],
   );
-
-  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleLineSelect(index);
-    }
-  };
 
   return (
     <div className="w-full space-y-3">
@@ -198,11 +154,9 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
               onClick={() => handleLineSelect(index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
               tabIndex={isFinishing ? -1 : 0}
               role="button"
-              aria-label={`Line ${index + 1}: ${line}${isSelected ? (isBuggy ? " (Correct)" : " (Incorrect)") : ""}`}
-              aria-pressed={isSelected}
+              aria-label={`Line ${index + 1}: ${line}`}
               className={`
                 relative flex items-center px-4 py-2.5 cursor-pointer transition-colors outline-none
                 border-b border-gray-800/50 last:border-0 focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset
@@ -216,68 +170,14 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
                 {index + 1}
               </span>
               <span className="flex-1 truncate">{line}</span>
-
               <AnimatePresence>
-                {isBuggy && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-green-400" />
-                  </motion.div>
-                )}
-                {isWrong && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                  >
-                    <XCircle className="w-4 h-4 text-red-400" />
-                  </motion.div>
-                )}
+                {isBuggy && <CheckCircle2 className="w-4 h-4 text-green-400" />}
+                {isWrong && <XCircle className="w-4 h-4 text-red-400" />}
               </AnimatePresence>
             </motion.div>
           );
         })}
       </motion.div>
-
-      <div className="h-5 text-center" aria-live="polite">
-        <AnimatePresence mode="wait">
-          {feedback === "correct" && (
-            <motion.p
-              key="correct"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="text-xs font-bold text-green-400"
-            >
-              Bug squashed! Next one...
-            </motion.p>
-          )}
-          {feedback === "wrong" && (
-            <motion.p
-              key="wrong"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="text-xs font-bold text-red-400"
-            >
-              Not quite. Look closer!
-            </motion.p>
-          )}
-          {!feedback && (
-            <motion.p
-              key="idle"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xs text-gray-500"
-            >
-              Tap or press Enter on the line with the error
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </div>
     </div>
   );
 }
