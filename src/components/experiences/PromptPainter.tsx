@@ -20,7 +20,10 @@ interface Particle {
   hue: number;
 }
 
-export default function PromptPainter({ isFinishing }: PromptPainterProps) {
+export default function PromptPainter({
+  isFinishing,
+  topic,
+}: PromptPainterProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationFrameRef = useRef<number>(0);
@@ -122,7 +125,6 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
-      // Prevent default to stop scrolling/zooming on touch devices
       e.preventDefault();
       const position = getPointerPosition(e.clientX, e.clientY);
       if (!position) return;
@@ -151,7 +153,10 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Palette className="w-3.5 h-3.5 text-pink-400" />
-          Prompt Painter
+          Prompt Painter{" "}
+          {topic && (
+            <span className="text-purple-400 normal-case">({topic})</span>
+          )}
         </div>
         <div className="text-xs text-gray-500">
           {isFinishing ? "Finalizing..." : "Touch & drag to paint"}
@@ -179,8 +184,10 @@ export default function PromptPainter({ isFinishing }: PromptPainterProps) {
 
         {!isFinishing && !hasPainted && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-xs text-gray-600 animate-pulse">
-              Draw something beautiful...
+            <p className="text-xs text-gray-600 animate-pulse text-center px-4">
+              {topic && topic !== "general"
+                ? `Draw something related to ${topic}...`
+                : "Draw something beautiful..."}
             </p>
           </div>
         )}

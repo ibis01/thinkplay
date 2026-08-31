@@ -9,8 +9,6 @@ import { Send, RefreshCw, Sparkles } from "lucide-react";
 
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
-
-  // Extract necessary state and actions from the store
   const {
     state,
     category,
@@ -32,7 +30,6 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-2xl space-y-8">
-        {/* Header */}
         <header className="text-center space-y-2">
           <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
             ThinkPlay
@@ -42,9 +39,7 @@ export default function Home() {
           </p>
         </header>
 
-        {/* Main Content Area */}
         <div className="min-h-[400px] flex flex-col justify-center">
-          {/* 1. IDLE STATE: Input Form */}
           {state === "IDLE" && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="relative">
@@ -68,7 +63,6 @@ export default function Home() {
             </form>
           )}
 
-          {/* 2. ACTIVE STATES: Contextual Mini-Games */}
           {(state === "REQUEST_STARTING" || state === "WAITING_ACTIVE") && (
             <div className="space-y-6 animate-in fade-in duration-500">
               <div className="text-center">
@@ -77,7 +71,6 @@ export default function Home() {
                     ? "Initializing..."
                     : "While the AI thinks..."}
                 </p>
-                {/* Contextual Indicator */}
                 {topic && topic !== "general" && (
                   <p className="text-xs text-purple-400 font-mono">
                     Context detected: {topic}
@@ -85,7 +78,7 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Contextual Experience Router */}
+              {/* Topic-Driven Experience Resolver */}
               {category === "coding" && (
                 <CodeBreaker isFinishing={false} topic={topic || undefined} />
               )}
@@ -98,7 +91,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* 3. SUCCESS STATES: AI Response */}
           {(state === "TRANSITIONING" || state === "RESPONSE_DISPLAYED") && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 space-y-4">
@@ -120,7 +112,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* 4. ERROR STATE: Recovery Path (Rule 14: No Dead Ends) */}
           {state === "ERROR" && (
             <div className="space-y-6 text-center animate-in fade-in duration-300">
               <div className="bg-red-900/20 border border-red-900/50 rounded-xl p-6">

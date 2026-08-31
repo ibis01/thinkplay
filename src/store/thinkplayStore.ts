@@ -2,6 +2,15 @@ import { create } from "zustand";
 import { LifecycleState, PromptCategory } from "@/types";
 import { classifyIntent } from "@/lib/classifier";
 
+const ERROR_CODE_MAP: Record<string, string> = {
+  TIMEOUT: "The response took too long. Please try again.",
+  VALIDATION_ERROR: "Invalid input. Please check your prompt and try again.",
+  PROVIDER_ERROR: "We couldn't generate a response. Please try again.",
+  RATE_LIMITED: "Too many requests. Please wait a moment and try again.",
+  NETWORK_ERROR: "Network issue. Please check your connection and try again.",
+  UNKNOWN_ERROR: "Something went wrong. Please try again.",
+};
+
 interface ThinkPlayState {
   state: LifecycleState;
   currentPrompt: string;
@@ -70,17 +79,22 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
         let safeError = "We couldn't generate your response. Please try again.";
         try {
           const errData = await response.json();
-          if (errData?.error && typeof errData.error === "string") {
-            // Strict sanitization: never leak secrets
+          if (
+            errData?.code &&
+            typeof errData.code === "string" &&
+            ERROR_CODE_MAP[errData.code]
+          ) {
+            safeError = ERROR_CODE_MAP[errData.code];
+          } else if (errData?.message && typeof errData.message === "string") {
             if (
-              !errData.error.includes("API_KEY") &&
-              !errData.error.includes(".env")
+              !errData.message.includes("API_KEY") &&
+              !errData.message.includes(".env")
             ) {
-              safeError = errData.error;
+              safeError = errData.message;
             }
           }
         } catch {
-          // Ignore parsing errors, use fallback
+          // Ignore parsing errors
         }
         throw new Error(safeError);
       }
