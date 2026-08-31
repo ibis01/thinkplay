@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useThinkPlayStore } from "@/store/thinkplayStore";
+import { resolveExperience } from "@/lib/experience-resolver";
 import CodeBreaker from "@/components/experiences/CodeBreaker";
 import ThinkFast from "@/components/experiences/ThinkFast";
 import PromptPainter from "@/components/experiences/PromptPainter";
@@ -26,6 +27,10 @@ export default function Home() {
       setInputValue("");
     }
   };
+
+  // Resolve experience configuration deterministically
+  const experienceConfig =
+    topic && category ? resolveExperience(topic, category) : null;
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 sm:p-6">
@@ -63,33 +68,49 @@ export default function Home() {
             </form>
           )}
 
-          {(state === "REQUEST_STARTING" || state === "WAITING_ACTIVE") && (
-            <div className="space-y-6 animate-in fade-in duration-500">
-              <div className="text-center">
-                <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
-                  {state === "REQUEST_STARTING"
-                    ? "Initializing..."
-                    : "While the AI thinks..."}
-                </p>
-                {topic && topic !== "general" && (
-                  <p className="text-xs text-purple-400 font-mono">
-                    Context detected: {topic}
+          {(state === "REQUEST_STARTING" || state === "WAITING_ACTIVE") &&
+            experienceConfig && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-2">
+                    {state === "REQUEST_STARTING"
+                      ? "Initializing..."
+                      : "While the AI thinks..."}
                   </p>
+                  {topic && topic !== "general" && (
+                    <p className="text-xs text-purple-400 font-mono">
+                      Context detected: {experienceConfig.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* 
+                CRITICAL: key={topic} forces React to unmount/remount the component 
+                if the topic changes, preventing stale context leakage (Phase 8).
+              */}
+                {category === "coding" && (
+                  <CodeBreaker
+                    isFinishing={false}
+                    config={experienceConfig}
+                    key={topic}
+                  />
+                )}
+                {category === "creative" && (
+                  <PromptPainter
+                    isFinishing={false}
+                    config={experienceConfig}
+                    key={topic}
+                  />
+                )}
+                {category === "general" && (
+                  <ThinkFast
+                    isFinishing={false}
+                    config={experienceConfig}
+                    key={topic}
+                  />
                 )}
               </div>
-
-              {/* Topic-Driven Experience Resolver */}
-              {category === "coding" && (
-                <CodeBreaker isFinishing={false} topic={topic || undefined} />
-              )}
-              {category === "creative" && (
-                <PromptPainter isFinishing={false} topic={topic || undefined} />
-              )}
-              {category === "general" && (
-                <ThinkFast isFinishing={false} topic={topic || undefined} />
-              )}
-            </div>
-          )}
+            )}
 
           {(state === "TRANSITIONING" || state === "RESPONSE_DISPLAYED") && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
