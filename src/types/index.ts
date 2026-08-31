@@ -9,6 +9,5 @@ export type LifecycleState =
   | "IDLE"
   | "REQUEST_STARTING"
   | "WAITING_ACTIVE"
-  | "TRANSITIONING"
   | "RESPONSE_DISPLAYED"
   | "ERROR";

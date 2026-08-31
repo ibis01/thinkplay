@@ -20,7 +20,6 @@ interface ThinkPlayState {
   errorMessage: string | null;
   currentRequestId: string | null;
   abortController: AbortController | null;
-  transitionTimerId: ReturnType<typeof setTimeout> | null;
   submitRequest: (prompt: string) => Promise<void>;
   reset: () => void;
 }
@@ -34,14 +33,10 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   errorMessage: null,
   currentRequestId: null,
   abortController: null,
-  transitionTimerId: null,
 
   submitRequest: async (prompt: string) => {
     const existingController = get().abortController;
     if (existingController) existingController.abort();
-
-    const existingTimer = get().transitionTimerId;
-    if (existingTimer) clearTimeout(existingTimer);
 
     const requestId = crypto.randomUUID();
     const controller = new AbortController();
@@ -55,7 +50,6 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       errorMessage: null,
       currentRequestId: requestId,
       abortController: controller,
-      transitionTimerId: null,
     });
 
     const context = classifyIntent(prompt);
@@ -102,15 +96,8 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       const data = await response.json();
 
       if (get().currentRequestId === requestId) {
-        set({ state: "TRANSITIONING", aiResponse: data.response });
-
-        const timerId = setTimeout(() => {
-          if (get().currentRequestId === requestId) {
-            set({ state: "RESPONSE_DISPLAYED", transitionTimerId: null });
-          }
-        }, 600);
-
-        set({ transitionTimerId: timerId });
+        // IMMEDIATELY set to RESPONSE_DISPLAYED without artificial delay
+        set({ state: "RESPONSE_DISPLAYED", aiResponse: data.response });
       }
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -131,9 +118,6 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
     const controller = get().abortController;
     if (controller) controller.abort();
 
-    const timerId = get().transitionTimerId;
-    if (timerId) clearTimeout(timerId);
-
     set({
       state: "IDLE",
       currentPrompt: "",
@@ -143,7 +127,6 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       errorMessage: null,
       currentRequestId: null,
       abortController: null,
-      transitionTimerId: null,
     });
   },
 }));

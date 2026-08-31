@@ -9,12 +9,17 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function WaitingRoom() {
   const { state, category, topic } = useThinkPlayStore();
-  const isFinishing = state === "TRANSITIONING";
+
+  // TRANSITIONING state has been removed to satisfy Rule 1 (No artificial delays).
+  // The component will naturally unmount when state becomes RESPONSE_DISPLAYED,
+  // which automatically triggers the smooth exit animation via AnimatePresence.
+  const isFinishing = false;
 
   const experienceConfig =
     topic && category ? resolveExperience({ category, topic }) : null;
 
-  if (state !== "WAITING_ACTIVE" && state !== "TRANSITIONING") return null;
+  // Only render during the active waiting phases
+  if (state !== "REQUEST_STARTING" && state !== "WAITING_ACTIVE") return null;
   if (!experienceConfig) return null;
 
   return (
