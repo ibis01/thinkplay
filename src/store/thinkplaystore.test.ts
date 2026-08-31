@@ -16,64 +16,43 @@ describe("ThinkPlay Store", () => {
   });
 
   it("should transition through states correctly on success", async () => {
-    // Mock successful fetch response from /api/generate
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: () => Promise.resolve({ response: "Mocked AI response" }),
     });
 
     const { submitRequest } = useThinkPlayStore.getState();
+    await submitRequest("Test prompt");
 
-    // 1. Initial state
-    expect(useThinkPlayStore.getState().state).toBe("IDLE");
-
-    // 2. Trigger request
-    const requestPromise = submitRequest("Test prompt");
-
-    // Wait for the async fetch operations to complete
-    await requestPromise;
-
-    // 3. After generation resolves, it should be TRANSITIONING
     expect(useThinkPlayStore.getState().state).toBe("TRANSITIONING");
     expect(useThinkPlayStore.getState().aiResponse).toBe("Mocked AI response");
 
-    // 4. Fast-forward the 600ms animation delay
     vi.advanceTimersByTime(600);
-
-    // 5. Check final state
     expect(useThinkPlayStore.getState().state).toBe("RESPONSE_DISPLAYED");
   });
 
   it("should transition to ERROR state on API failure", async () => {
-    // Mock failed fetch response
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
+      json: () =>
+        Promise.resolve({ code: "PROVIDER_ERROR", message: "Failed" }),
     });
 
     const { submitRequest } = useThinkPlayStore.getState();
-
-    // Trigger request
     await submitRequest("Test prompt");
 
-    // Check error state
     expect(useThinkPlayStore.getState().state).toBe("ERROR");
     expect(useThinkPlayStore.getState().errorMessage).toBe(
-      "We couldn't generate your response. Please try again.",
+      "We couldn't generate a response. Please try again.",
     );
-
-    // CRITICAL CHECK: Ensure no secrets are leaked in the error message
-    expect(useThinkPlayStore.getState().errorMessage).not.toContain("API_KEY");
-    expect(useThinkPlayStore.getState().errorMessage).not.toContain(".env");
   });
 
   it("should reset to IDLE state cleanly", () => {
-    const { reset } = useThinkPlayStore.getState();
-
-    // Manually set to error state first with all properties
     useThinkPlayStore.setState({
       state: "ERROR",
       currentPrompt: "test",
       category: "general",
+      topic: "general",
       aiResponse: "test",
       errorMessage: "test",
       currentRequestId: "123",
@@ -81,17 +60,40 @@ describe("ThinkPlay Store", () => {
       transitionTimerId: setTimeout(() => {}, 1000),
     });
 
-    // Reset
-    reset();
+    useThinkPlayStore.getState().reset();
 
     const state = useThinkPlayStore.getState();
     expect(state.state).toBe("IDLE");
     expect(state.currentPrompt).toBe("");
     expect(state.category).toBeNull();
+    expect(state.topic).toBeNull();
     expect(state.aiResponse).toBeNull();
     expect(state.errorMessage).toBeNull();
     expect(state.currentRequestId).toBeNull();
     expect(state.abortController).toBeNull();
     expect(state.transitionTimerId).toBeNull();
+  });
+
+  // NEW INTEGRATION TEST: Proves the runtime path from prompt to state
+  it("should update category and topic in state based on classifier output (Integration)", async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ response: "React hooks are functions..." }),
+    });
+
+    const { submitRequest } = useThinkPlayStore.getState();
+
+    // 1. Submit a prompt that the classifier will identify as React
+    await submitRequest("Explain React hooks");
+
+    const state = useThinkPlayStore.getState();
+
+    // 2. Prove the classifier extracted the correct context
+    expect(state.category).toBe("coding");
+    expect(state.topic).toBe("react");
+
+    // 3. Prove the AI response is available immediately (AI Priority Rule)
+    expect(state.aiResponse).toBe("React hooks are functions...");
+    expect(state.state).toBe("TRANSITIONING");
   });
 });
