@@ -6,7 +6,7 @@ interface ThinkPlayState {
   state: LifecycleState;
   currentPrompt: string;
   category: PromptCategory | null;
-  topic: string | null; // NEW
+  topic: string | null;
   aiResponse: string | null;
   errorMessage: string | null;
   currentRequestId: string | null;
@@ -20,7 +20,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
   state: "IDLE",
   currentPrompt: "",
   category: null,
-  topic: null, // NEW
+  topic: null,
   aiResponse: null,
   errorMessage: null,
   currentRequestId: null,
@@ -41,7 +41,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       state: "REQUEST_STARTING",
       currentPrompt: prompt,
       category: null,
-      topic: null, // NEW
+      topic: null,
       aiResponse: null,
       errorMessage: null,
       currentRequestId: requestId,
@@ -49,9 +49,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       transitionTimerId: null,
     });
 
-    // Extract context instantly
     const context = classifyIntent(prompt);
-
     if (get().currentRequestId === requestId) {
       set({
         state: "WAITING_ACTIVE",
@@ -68,7 +66,25 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
         signal: controller.signal,
       });
 
-      if (!response.ok) throw new Error("Generation failed");
+      if (!response.ok) {
+        let safeError = "We couldn't generate your response. Please try again.";
+        try {
+          const errData = await response.json();
+          if (errData?.error && typeof errData.error === "string") {
+            // Strict sanitization: never leak secrets
+            if (
+              !errData.error.includes("API_KEY") &&
+              !errData.error.includes(".env")
+            ) {
+              safeError = errData.error;
+            }
+          }
+        } catch {
+          // Ignore parsing errors, use fallback
+        }
+        throw new Error(safeError);
+      }
+
       const data = await response.json();
 
       if (get().currentRequestId === requestId) {
@@ -82,13 +98,16 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
 
         set({ transitionTimerId: timerId });
       }
-    } catch {
+    } catch (error) {
       if (controller.signal.aborted) return;
 
       if (get().currentRequestId === requestId) {
         set({
           state: "ERROR",
-          errorMessage: "We couldn't generate your response. Please try again.",
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "We couldn't generate your response. Please try again.",
         });
       }
     }
@@ -105,7 +124,7 @@ export const useThinkPlayStore = create<ThinkPlayState>((set, get) => ({
       state: "IDLE",
       currentPrompt: "",
       category: null,
-      topic: null, // NEW
+      topic: null,
       aiResponse: null,
       errorMessage: null,
       currentRequestId: null,
