@@ -14,6 +14,15 @@ describe("resolveExperience", () => {
     expect(config.description).toBe("Fix a Python script");
   });
 
+  it("should resolve JavaScript topic", () => {
+    const config = resolveExperience({
+      category: "coding",
+      topic: "javascript",
+    });
+    expect(config.theme).toBe("javascript");
+    expect(config.description).toBe("Debug JavaScript code");
+  });
+
   it("should resolve Space topic", () => {
     const config = resolveExperience({ category: "general", topic: "space" });
     expect(config.theme).toBe("space");

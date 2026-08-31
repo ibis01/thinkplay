@@ -28,6 +28,7 @@ export default function Home() {
     }
   };
 
+  // 1. Resolve experience configuration deterministically
   const experienceConfig: ExperienceConfig | null =
     topic && category ? resolveExperience({ category, topic }) : null;
 
@@ -67,6 +68,7 @@ export default function Home() {
             </form>
           )}
 
+          {/* 2. Actual waiting/game component consumes the resolver output */}
           {(state === "REQUEST_STARTING" || state === "WAITING_ACTIVE") &&
             experienceConfig && (
               <div className="space-y-6 animate-in fade-in duration-500">
@@ -83,6 +85,7 @@ export default function Home() {
                   )}
                 </div>
 
+                {/* 3. key={experienceConfig.theme} forces clean remount, preventing stale context leakage */}
                 {category === "coding" && (
                   <CodeBreaker
                     isFinishing={false}
@@ -107,6 +110,7 @@ export default function Home() {
               </div>
             )}
 
+          {/* 4. AI Response is available immediately on TRANSITIONING (no arbitrary blocking timer) */}
           {(state === "TRANSITIONING" || state === "RESPONSE_DISPLAYED") && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 space-y-4">

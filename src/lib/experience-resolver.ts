@@ -3,6 +3,7 @@ import type { PromptContext } from "@/types";
 export type ExperienceTheme =
   | "react"
   | "python"
+  | "javascript"
   | "space"
   | "cooking"
   | "music"
@@ -16,7 +17,10 @@ export interface ExperienceConfig {
 const TOPIC_THEME_MAP: Record<string, ExperienceTheme> = {
   react: "react",
   python: "python",
-  javascript: "python",
+  javascript: "javascript",
+  js: "javascript",
+  ts: "javascript",
+  typescript: "javascript",
   space: "space",
   mars: "space",
   nasa: "space",
@@ -30,6 +34,7 @@ const TOPIC_THEME_MAP: Record<string, ExperienceTheme> = {
 const THEME_DESCRIPTIONS: Record<ExperienceTheme, string> = {
   react: "Debug a React component",
   python: "Fix a Python script",
+  javascript: "Debug JavaScript code",
   space: "Explore the cosmos",
   cooking: "Match ingredients",
   music: "Identify musical elements",

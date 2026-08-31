@@ -39,6 +39,21 @@ const PYTHON_CHALLENGES: CodeChallenge[] = [
   { lines: ["for i in range(10)", "    print(i)"], buggyLineIndex: 0 },
 ];
 
+const JAVASCRIPT_CHALLENGES: CodeChallenge[] = [
+  {
+    lines: [
+      "const arr = [1, 2, 3];",
+      "arr.map(x => x * 2",
+      "console.log(arr);",
+    ],
+    buggyLineIndex: 1,
+  },
+  {
+    lines: ["function add(a, b) {", "  return a + b", "}", "add(1, 2"],
+    buggyLineIndex: 3,
+  },
+];
+
 const GENERAL_CHALLENGES: CodeChallenge[] = [
   { lines: ["if (x = 5) {", "  return true;", "}"], buggyLineIndex: 0 },
   {
@@ -57,13 +72,15 @@ interface CodeBreakerProps {
 }
 
 export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
-  // Select pool based on theme
+  // Meaningful behavior change: selects entirely different challenge pools based on theme
   const challengePool =
     config.theme === "react"
       ? REACT_CHALLENGES
       : config.theme === "python"
         ? PYTHON_CHALLENGES
-        : GENERAL_CHALLENGES;
+        : config.theme === "javascript"
+          ? JAVASCRIPT_CHALLENGES
+          : GENERAL_CHALLENGES;
 
   const [challenge, setChallenge] = useState<CodeChallenge>(
     () => challengePool[Math.floor(Math.random() * challengePool.length)],
