@@ -28,7 +28,6 @@ export default function Home() {
     }
   };
 
-  // Resolve experience configuration deterministically
   const experienceConfig: ExperienceConfig | null =
     topic && category ? resolveExperience({ category, topic }) : null;
 
@@ -84,7 +83,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* key={experienceConfig.theme} forces remount if topic changes, preventing stale state */}
                 {category === "coding" && (
                   <CodeBreaker
                     isFinishing={false}
@@ -109,7 +107,6 @@ export default function Home() {
               </div>
             )}
 
-          {/* BLOCKER 2 FIX: Response is available immediately on TRANSITIONING */}
           {(state === "TRANSITIONING" || state === "RESPONSE_DISPLAYED") && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 space-y-4">

@@ -1,4 +1,4 @@
-import type { PromptCategory, PromptContext } from "@/types";
+import type { PromptContext } from "@/types";
 
 export type ExperienceTheme =
   | "react"
@@ -16,7 +16,7 @@ export interface ExperienceConfig {
 const TOPIC_THEME_MAP: Record<string, ExperienceTheme> = {
   react: "react",
   python: "python",
-  javascript: "python", // Fallback for generic JS to python pool for now
+  javascript: "python",
   space: "space",
   mars: "space",
   nasa: "space",

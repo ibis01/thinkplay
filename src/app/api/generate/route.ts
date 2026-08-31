@@ -4,19 +4,7 @@ import { generateAIResponse } from "@/lib/ai-provider";
 const MAX_PROMPT_LENGTH = 2000;
 const TIMEOUT_MS = 30000;
 
-type ErrorCode =
-  | "CLIENT_ABORT"
-  | "TIMEOUT"
-  | "VALIDATION_ERROR"
-  | "PROVIDER_ERROR"
-  | "RATE_LIMITED"
-  | "NETWORK_ERROR"
-  | "UNKNOWN_ERROR";
 
-interface ErrorResponse {
-  code: ErrorCode;
-  message: string;
-}
 
 export async function POST(request: Request) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;

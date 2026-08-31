@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { resolveExperience } from "./experience-resolver";
-import type { PromptContext } from "@/types";
 
 describe("resolveExperience", () => {
   it("should resolve React topic", () => {
