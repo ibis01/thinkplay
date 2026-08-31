@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useThinkPlayStore } from "@/store/thinkplayStore";
 import { resolveExperience, ExperienceConfig } from "@/lib/experience-resolver";
 import CodeBreaker from "@/components/experiences/CodeBreaker";
@@ -10,6 +10,7 @@ import { Send, RefreshCw, Sparkles } from "lucide-react";
 
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
+  const [showForm, setShowForm] = useState(false);
   const {
     state,
     category,
@@ -19,6 +20,10 @@ export default function Home() {
     submitRequest,
     reset,
   } = useThinkPlayStore();
+
+  useEffect(() => {
+    setShowForm(true);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +49,7 @@ export default function Home() {
         </header>
 
         <div className="min-h-[400px] flex flex-col justify-center">
-          {state === "IDLE" && (
+          {state === "IDLE" && showForm && (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="relative">
                 <input
@@ -57,7 +62,7 @@ export default function Home() {
                 />
                 <button
                   type="submit"
-                  disabled={inputValue.trim().length === 0}
+                  disabled={!showForm || inputValue.trim().length === 0}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-800 disabled:text-gray-500 rounded-lg transition-colors"
                   aria-label="Submit prompt"
                 >
@@ -85,21 +90,18 @@ export default function Home() {
 
                 {category === "coding" && (
                   <CodeBreaker
-                    isFinishing={false}
                     config={experienceConfig}
                     key={experienceConfig.theme}
                   />
                 )}
                 {category === "creative" && (
                   <PromptPainter
-                    isFinishing={false}
                     config={experienceConfig}
                     key={experienceConfig.theme}
                   />
                 )}
                 {category === "general" && (
                   <ThinkFast
-                    isFinishing={false}
                     config={experienceConfig}
                     key={experienceConfig.theme}
                   />

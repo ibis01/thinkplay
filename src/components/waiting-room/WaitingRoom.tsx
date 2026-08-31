@@ -10,15 +10,9 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function WaitingRoom() {
   const { state, category, topic } = useThinkPlayStore();
 
-  // TRANSITIONING state has been removed to satisfy Rule 1 (No artificial delays).
-  // The component will naturally unmount when state becomes RESPONSE_DISPLAYED,
-  // which automatically triggers the smooth exit animation via AnimatePresence.
-  const isFinishing = false;
-
   const experienceConfig =
     topic && category ? resolveExperience({ category, topic }) : null;
 
-  // Only render during the active waiting phases
   if (state !== "REQUEST_STARTING" && state !== "WAITING_ACTIVE") return null;
   if (!experienceConfig) return null;
 
@@ -31,15 +25,9 @@ export default function WaitingRoom() {
         exit={{ opacity: 0, y: -20 }}
         className="w-full max-w-md mx-auto"
       >
-        {category === "coding" && (
-          <CodeBreaker isFinishing={isFinishing} config={experienceConfig} />
-        )}
-        {category === "creative" && (
-          <PromptPainter isFinishing={isFinishing} config={experienceConfig} />
-        )}
-        {category === "general" && (
-          <ThinkFast isFinishing={isFinishing} config={experienceConfig} />
-        )}
+        {category === "coding" && <CodeBreaker config={experienceConfig} />}
+        {category === "creative" && <PromptPainter config={experienceConfig} />}
+        {category === "general" && <ThinkFast config={experienceConfig} />}
       </motion.div>
     </AnimatePresence>
   );

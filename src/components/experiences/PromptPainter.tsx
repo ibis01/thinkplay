@@ -6,7 +6,6 @@ import { Palette } from "lucide-react";
 import type { ExperienceConfig } from "@/lib/experience-resolver";
 
 interface PromptPainterProps {
-  isFinishing: boolean;
   config: ExperienceConfig;
 }
 
@@ -20,10 +19,7 @@ interface Particle {
   hue: number;
 }
 
-export default function PromptPainter({
-  isFinishing,
-  config,
-}: PromptPainterProps) {
+export default function PromptPainter({ config }: PromptPainterProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const animationFrameRef = useRef<number>(0);
@@ -59,7 +55,7 @@ export default function PromptPainter({
       ctx.clearRect(0, 0, rect.width, rect.height);
       ctx.globalCompositeOperation = "lighter";
 
-      if (pointerRef.current.isDown && !isFinishing) {
+      if (pointerRef.current.isDown) {
         hueRef.current = (hueRef.current + 2) % 360;
         for (let i = 0; i < 3; i++) {
           particlesRef.current.push({
@@ -100,7 +96,7 @@ export default function PromptPainter({
       window.removeEventListener("resize", resizeCanvas);
       cancelAnimationFrame(animationFrameRef.current);
     };
-  }, [isFinishing, syncPaintState]);
+  }, [syncPaintState]);
 
   const getPointerPosition = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -148,9 +144,7 @@ export default function PromptPainter({
       </div>
       <motion.div
         className="relative w-full h-48 bg-[#0a0a0f] rounded-xl border border-gray-800 overflow-hidden shadow-inner touch-none"
-        animate={
-          isFinishing ? { opacity: 0.5, scale: 0.98 } : { opacity: 1, scale: 1 }
-        }
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6 }}
       >
         <canvas
@@ -164,7 +158,7 @@ export default function PromptPainter({
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         />
-        {!isFinishing && !hasPainted && (
+        {!hasPainted && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-xs text-gray-600 animate-pulse text-center px-4">
               {config.theme !== "general"

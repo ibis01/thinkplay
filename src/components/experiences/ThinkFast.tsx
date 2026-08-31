@@ -6,24 +6,23 @@ import { Zap, Brain, CheckCircle2, XCircle } from "lucide-react";
 import type { ExperienceConfig } from "@/lib/experience-resolver";
 
 interface ThinkFastProps {
-  isFinishing: boolean;
   config: ExperienceConfig;
 }
 
 const SPACE_EMOJIS = [
-  ["🚀", "🛸"],
-  ["", "🌍"],
-  ["", "🤖"],
+  ["🚀", ""],
+  ["🪐", ""],
+  ["👽", ""],
 ];
 const COOKING_EMOJIS = [
   ["🍎", "🍏"],
-  ["🍕", ""],
-  ["🍳", "🥓"],
+  ["🍕", "🍔"],
+  ["", "🥓"],
 ];
 const GENERAL_EMOJIS = [
-  ["", "🍏"],
-  ["", "🚕"],
-  ["⚽", "🏀"],
+  ["⚽", ""],
+  ["🚗", "🚕"],
+  ["🐶", "🐱"],
 ];
 
 interface Challenge {
@@ -31,7 +30,7 @@ interface Challenge {
   oddIndex: number;
 }
 
-export default function ThinkFast({ isFinishing, config }: ThinkFastProps) {
+export default function ThinkFast({ config }: ThinkFastProps) {
   const emojiPool =
     config.theme === "space"
       ? SPACE_EMOJIS
@@ -69,7 +68,7 @@ export default function ThinkFast({ isFinishing, config }: ThinkFastProps) {
 
   const handleTileClick = useCallback(
     (index: number) => {
-      if (isFinishing || !challenge || feedback === "correct") return;
+      if (!challenge || feedback === "correct") return;
       setSelectedIndex(index);
 
       if (index === challenge.oddIndex) {
@@ -77,7 +76,7 @@ export default function ThinkFast({ isFinishing, config }: ThinkFastProps) {
         setScore((prev) => prev + 1);
         if (advanceTimer.current) clearTimeout(advanceTimer.current);
         advanceTimer.current = setTimeout(() => {
-          if (isMounted.current && !isFinishing) {
+          if (isMounted.current) {
             setChallenge(generateChallenge());
             setSelectedIndex(null);
             setFeedback(null);
@@ -94,7 +93,7 @@ export default function ThinkFast({ isFinishing, config }: ThinkFastProps) {
         }, 400);
       }
     },
-    [isFinishing, challenge, feedback, generateChallenge],
+    [challenge, feedback, generateChallenge],
   );
 
   if (!challenge) return null;
@@ -137,7 +136,6 @@ export default function ThinkFast({ isFinishing, config }: ThinkFastProps) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.5 }}
                   onClick={() => handleTileClick(index)}
-                  disabled={isFinishing}
                   aria-label={`Tile ${index + 1}: ${emoji}`}
                   className={`
                     relative aspect-square flex items-center justify-center 
@@ -146,7 +144,6 @@ export default function ThinkFast({ isFinishing, config }: ThinkFastProps) {
                     ${isOdd ? "bg-green-500/20 ring-2 ring-green-500 scale-110" : ""}
                     ${isWrong ? "bg-red-500/20 ring-2 ring-red-500" : ""}
                     ${!isSelected ? "bg-gray-800/50 hover:bg-gray-700/50 active:scale-95" : ""}
-                    ${isFinishing ? "opacity-40 pointer-events-none" : ""}
                   `}
                 >
                   {emoji}

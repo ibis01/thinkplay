@@ -67,12 +67,10 @@ const GENERAL_CHALLENGES: CodeChallenge[] = [
 ];
 
 interface CodeBreakerProps {
-  isFinishing: boolean;
   config: ExperienceConfig;
 }
 
-export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
-  // Meaningful behavior change: selects entirely different challenge pools based on theme
+export default function CodeBreaker({ config }: CodeBreakerProps) {
   const challengePool =
     config.theme === "react"
       ? REACT_CHALLENGES
@@ -110,7 +108,7 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
 
   const handleLineSelect = useCallback(
     (index: number) => {
-      if (isFinishing || feedback === "correct") return;
+      if (feedback === "correct") return;
       setSelectedLine(index);
 
       if (index === challenge.buggyLineIndex) {
@@ -118,7 +116,7 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
         setScore((prev) => prev + 1);
         if (advanceTimer.current) clearTimeout(advanceTimer.current);
         advanceTimer.current = setTimeout(() => {
-          if (isMounted.current && !isFinishing) pickNewChallenge();
+          if (isMounted.current) pickNewChallenge();
         }, 800);
       } else {
         setFeedback("wrong");
@@ -131,7 +129,7 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
         }, 500);
       }
     },
-    [isFinishing, feedback, challenge.buggyLineIndex, pickNewChallenge],
+    [feedback, challenge.buggyLineIndex, pickNewChallenge],
   );
 
   return (
@@ -171,7 +169,7 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
               onClick={() => handleLineSelect(index)}
-              tabIndex={isFinishing ? -1 : 0}
+              tabIndex={0}
               role="button"
               aria-label={`Line ${index + 1}: ${line}`}
               className={`
@@ -180,7 +178,6 @@ export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
                 ${isBuggy ? "bg-green-500/10 text-green-400" : ""}
                 ${isWrong ? "bg-red-500/10 text-red-400" : ""}
                 ${!isSelected ? "text-gray-300 hover:bg-gray-800/50" : ""}
-                ${isFinishing ? "pointer-events-none opacity-50" : ""}
               `}
             >
               <span className="text-gray-600 w-6 select-none text-xs">
