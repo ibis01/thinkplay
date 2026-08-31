@@ -1,35 +1,55 @@
-import { PromptCategory } from "@/types";
+import type { PromptCategory, PromptContext } from "@/types";
+
+export type ExperienceTheme =
+  | "react"
+  | "python"
+  | "javascript"
+  | "space"
+  | "cooking"
+  | "music"
+  | "general";
 
 export interface ExperienceConfig {
-  theme: string;
+  topic: string;
+  category: PromptCategory;
+  theme: ExperienceTheme;
   description: string;
 }
 
-// Deterministic experience resolver map
-export const TOPIC_EXPERIENCE_MAP: Record<string, ExperienceConfig> = {
-  react: { theme: "coding", description: "Debug a React component" },
-  python: { theme: "coding", description: "Fix a Python script" },
-  javascript: { theme: "coding", description: "Debug JavaScript code" },
-  space: { theme: "general", description: "Identify space objects" },
-  cooking: { theme: "general", description: "Match cooking ingredients" },
-  music: { theme: "creative", description: "Identify musical elements" },
+const TOPIC_THEME_MAP: Record<string, ExperienceTheme> = {
+  react: "react",
+  python: "python",
+  javascript: "javascript",
+  js: "javascript",
+  ts: "javascript",
+  space: "space",
+  mars: "space",
+  nasa: "space",
+  cooking: "cooking",
+  recipe: "cooking",
+  food: "cooking",
+  music: "music",
+  song: "music",
+  guitar: "music",
 };
 
-export function resolveExperience(
-  topic: string,
-  category: PromptCategory,
-): ExperienceConfig {
-  const config = TOPIC_EXPERIENCE_MAP[topic];
-  if (config) return config;
+const THEME_DESCRIPTIONS: Record<ExperienceTheme, string> = {
+  react: "Debug a React component",
+  python: "Fix a Python script",
+  javascript: "Debug JavaScript code",
+  space: "Explore the cosmos",
+  cooking: "Match ingredients",
+  music: "Identify musical elements",
+  general: "Find the odd one out",
+};
 
-  // Fallback to category-based default
+export function resolveExperience(context: PromptContext): ExperienceConfig {
+  const theme = TOPIC_THEME_MAP[context.topic.toLowerCase()] ?? "general";
+
   return {
-    theme: category,
-    description:
-      category === "coding"
-        ? "Find the bug"
-        : category === "creative"
-          ? "Create something"
-          : "Find the odd one out",
+    topic: context.topic,
+    category: context.category,
+    theme,
+    description: THEME_DESCRIPTIONS[theme],
   };
 }

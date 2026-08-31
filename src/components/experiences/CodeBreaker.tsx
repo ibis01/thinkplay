@@ -3,13 +3,13 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bug, CheckCircle2, XCircle, Zap } from "lucide-react";
+import type { ExperienceConfig } from "@/lib/experience-resolver";
 
 interface CodeChallenge {
   lines: string[];
   buggyLineIndex: number;
 }
 
-// Contextual Challenge Library
 const TOPIC_CHALLENGES: Record<string, CodeChallenge[]> = {
   react: [
     {
@@ -92,13 +92,11 @@ const GENERAL_CHALLENGES: CodeChallenge[] = [
 
 interface CodeBreakerProps {
   isFinishing: boolean;
-  topic?: string;
+  config: ExperienceConfig;
 }
 
-export default function CodeBreaker({ isFinishing, topic }: CodeBreakerProps) {
-  // Select challenge pool based on topic, fallback to general
-  const challengePool =
-    (topic && TOPIC_CHALLENGES[topic]) || GENERAL_CHALLENGES;
+export default function CodeBreaker({ isFinishing, config }: CodeBreakerProps) {
+  const challengePool = TOPIC_CHALLENGES[config.theme] || GENERAL_CHALLENGES;
 
   const [challenge, setChallenge] = useState<CodeChallenge>(
     () => challengePool[Math.floor(Math.random() * challengePool.length)],
@@ -110,7 +108,6 @@ export default function CodeBreaker({ isFinishing, topic }: CodeBreakerProps) {
   const isMounted = useRef(true);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Update pool if topic changes dynamically (though usually static per session)
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -170,8 +167,10 @@ export default function CodeBreaker({ isFinishing, topic }: CodeBreakerProps) {
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Bug className="w-3.5 h-3.5 text-red-400" />
           Spot the Bug{" "}
-          {topic && (
-            <span className="text-purple-400 normal-case">({topic})</span>
+          {config.theme !== "general" && (
+            <span className="text-purple-400 normal-case">
+              ({config.theme})
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5 bg-gray-800/50 px-2.5 py-1 rounded-full border border-gray-700">

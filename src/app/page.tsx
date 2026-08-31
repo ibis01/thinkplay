@@ -28,9 +28,8 @@ export default function Home() {
     }
   };
 
-  // Resolve experience configuration deterministically
   const experienceConfig =
-    topic && category ? resolveExperience(topic, category) : null;
+    topic && category ? resolveExperience({ category, topic }) : null;
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 sm:p-6">
@@ -77,36 +76,32 @@ export default function Home() {
                       ? "Initializing..."
                       : "While the AI thinks..."}
                   </p>
-                  {topic && topic !== "general" && (
+                  {experienceConfig.theme !== "general" && (
                     <p className="text-xs text-purple-400 font-mono">
-                      Context detected: {experienceConfig.description}
+                      {experienceConfig.description}
                     </p>
                   )}
                 </div>
 
-                {/* 
-                CRITICAL: key={topic} forces React to unmount/remount the component 
-                if the topic changes, preventing stale context leakage (Phase 8).
-              */}
                 {category === "coding" && (
                   <CodeBreaker
                     isFinishing={false}
                     config={experienceConfig}
-                    key={topic}
+                    key={experienceConfig.theme}
                   />
                 )}
                 {category === "creative" && (
                   <PromptPainter
                     isFinishing={false}
                     config={experienceConfig}
-                    key={topic}
+                    key={experienceConfig.theme}
                   />
                 )}
                 {category === "general" && (
                   <ThinkFast
                     isFinishing={false}
                     config={experienceConfig}
-                    key={topic}
+                    key={experienceConfig.theme}
                   />
                 )}
               </div>

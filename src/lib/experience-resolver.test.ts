@@ -1,42 +1,59 @@
-import { describe, it, expect } from 'vitest';
-import { resolveExperience, TOPIC_EXPERIENCE_MAP } from './experience-resolver';
-import { classifyIntent } from './classifier';
+import { describe, it, expect } from "vitest";
+import { resolveExperience } from "./experience-resolver";
+import type { PromptContext } from "@/types";
 
-describe('Topic to Experience Integration', () => {
-  it('should prove React prompts produce React-specific experience configurations', () => {
-    // 1. Prompt -> Classifier
-    const context = classifyIntent("Fix this React bug");
-    expect(context.topic).toBe("react");
-    
-    // 2. Topic -> Experience Resolver
-    const config = resolveExperience(context.topic, context.category);
+describe("resolveExperience", () => {
+  it("should resolve React topic to React experience", () => {
+    const context: PromptContext = { category: "coding", topic: "react" };
+    const config = resolveExperience(context);
+    expect(config.theme).toBe("react");
     expect(config.description).toBe("Debug a React component");
-    expect(config.theme).toBe("coding");
   });
 
-  it('should prove Space prompts produce Space-specific experience configurations', () => {
-    // 1. Prompt -> Classifier
-    const context = classifyIntent("Tell me about NASA");
-    expect(context.topic).toBe("space");
-    
-    // 2. Topic -> Experience Resolver
-    const config = resolveExperience(context.topic, context.category);
-    expect(config.description).toBe("Identify space objects");
+  it("should resolve Python topic to Python experience", () => {
+    const context: PromptContext = { category: "coding", topic: "python" };
+    const config = resolveExperience(context);
+    expect(config.theme).toBe("python");
+    expect(config.description).toBe("Fix a Python script");
+  });
+
+  it("should resolve Space topic to Space experience", () => {
+    const context: PromptContext = { category: "general", topic: "space" };
+    const config = resolveExperience(context);
+    expect(config.theme).toBe("space");
+    expect(config.description).toBe("Explore the cosmos");
+  });
+
+  it("should resolve Cooking topic to Cooking experience", () => {
+    const context: PromptContext = { category: "general", topic: "cooking" };
+    const config = resolveExperience(context);
+    expect(config.theme).toBe("cooking");
+    expect(config.description).toBe("Match ingredients");
+  });
+
+  it("should resolve unknown topic to generic experience", () => {
+    const context: PromptContext = { category: "general", topic: "unknown" };
+    const config = resolveExperience(context);
     expect(config.theme).toBe("general");
+    expect(config.description).toBe("Find the odd one out");
   });
 
-  it('should prove different topics produce different experience configurations', () => {
-    const reactConfig = resolveExperience("react", "coding");
-    const spaceConfig = resolveExperience("space", "general");
+  it("should produce meaningfully different configs for different topics", () => {
+    const reactConfig = resolveExperience({
+      category: "coding",
+      topic: "react",
+    });
+    const spaceConfig = resolveExperience({
+      category: "general",
+      topic: "space",
+    });
 
-    expect(reactConfig.description).not.toBe(spaceConfig.description);
     expect(reactConfig.theme).not.toBe(spaceConfig.theme);
-    expect(TOPIC_EXPERIENCE_MAP["react"]).not.toEqual(TOPIC_EXPERIENCE_MAP["space"]);
+    expect(reactConfig.description).not.toBe(spaceConfig.description);
   });
 
-  it('should fallback to category default for unknown topics', () => {
-    const config = resolveExperience("unknown_topic", "coding");
-    expect(config.description).toBe("Find the bug");
-    expect(config.theme).toBe("coding");
+  it("should handle case-insensitive topic matching", () => {
+    const config = resolveExperience({ category: "coding", topic: "React" });
+    expect(config.theme).toBe("react");
   });
 });

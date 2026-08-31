@@ -3,23 +3,23 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Brain, CheckCircle2, XCircle } from "lucide-react";
+import type { ExperienceConfig } from "@/lib/experience-resolver";
 
 interface ThinkFastProps {
   isFinishing: boolean;
-  topic?: string;
+  config: ExperienceConfig;
 }
 
-// Contextual Emoji Library
 const TOPIC_EMOJIS: Record<string, string[][]> = {
   space: [
     ["🚀", "🛸"],
     ["🪐", "🌍"],
-    ["👽", "🤖"],
+    ["", "🤖"],
     ["️", "🌟"],
     ["🌕", "🌑"],
   ],
   cooking: [
-    ["🍎", "🍏"],
+    ["", "🍏"],
     ["🍕", "🍔"],
     ["🍳", "🥓"],
     ["", "🍺"],
@@ -32,22 +32,33 @@ const TOPIC_EMOJIS: Record<string, string[][]> = {
     ["🎵", "🎶"],
     ["🎼", "🎻"],
   ],
-  coding: [
-    ["💻", "🖥️"],
-    ["⌨️", "🖱️"],
-    ["🐛", "🔧"],
-    ["📱", "⌚"],
-    ["🤖", ""],
+  react: [
+    ["⚛️", ""],
+    ["🎣", ""],
+    ["🧩", ""],
+    ["🔁", "🔄"],
+  ],
+  python: [
+    ["🐍", "🐍"],
+    ["📊", ""],
+    ["🔢", ""],
+    ["🧮", ""],
+  ],
+  javascript: [
+    ["", "📋"],
+    ["", "⚡"],
+    ["", "🌍"],
+    ["", "🛠️"],
   ],
 };
 
 const GENERAL_EMOJIS = [
   ["🍎", "🍏"],
   ["", "🐱"],
-  ["🚗", "🚕"],
+  ["🚗", ""],
   ["⚽", ""],
-  ["🌕", "🌑"],
-  ["🔥", "💧"],
+  ["", "🌑"],
+  ["", "💧"],
   ["🎸", "🎺"],
   ["", "🍔"],
   ["🌲", "🌵"],
@@ -59,9 +70,8 @@ interface Challenge {
   oddIndex: number;
 }
 
-export default function ThinkFast({ isFinishing, topic }: ThinkFastProps) {
-  // Select emoji pool based on topic, fallback to general
-  const emojiPool = (topic && TOPIC_EMOJIS[topic]) || GENERAL_EMOJIS;
+export default function ThinkFast({ isFinishing, config }: ThinkFastProps) {
+  const emojiPool = TOPIC_EMOJIS[config.theme] || GENERAL_EMOJIS;
 
   const generateChallenge = useCallback((): Challenge => {
     const pair = emojiPool[Math.floor(Math.random() * emojiPool.length)];
@@ -134,8 +144,10 @@ export default function ThinkFast({ isFinishing, topic }: ThinkFastProps) {
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Brain className="w-3.5 h-3.5 text-purple-400" />
           Think Fast{" "}
-          {topic && (
-            <span className="text-purple-400 normal-case">({topic})</span>
+          {config.theme !== "general" && (
+            <span className="text-purple-400 normal-case">
+              ({config.theme})
+            </span>
           )}
         </div>
         <div className="flex items-center gap-1.5 bg-gray-800/50 px-2.5 py-1 rounded-full border border-gray-700">

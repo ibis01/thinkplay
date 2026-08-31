@@ -3,10 +3,11 @@
 import { useRef, useEffect, useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import { Palette } from "lucide-react";
+import type { ExperienceConfig } from "@/lib/experience-resolver";
 
 interface PromptPainterProps {
   isFinishing: boolean;
-  topic?: string;
+  config: ExperienceConfig;
 }
 
 interface Particle {
@@ -22,7 +23,7 @@ interface Particle {
 
 export default function PromptPainter({
   isFinishing,
-  topic,
+  config,
 }: PromptPainterProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
@@ -154,8 +155,10 @@ export default function PromptPainter({
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
           <Palette className="w-3.5 h-3.5 text-pink-400" />
           Prompt Painter{" "}
-          {topic && (
-            <span className="text-purple-400 normal-case">({topic})</span>
+          {config.theme !== "general" && (
+            <span className="text-purple-400 normal-case">
+              ({config.theme})
+            </span>
           )}
         </div>
         <div className="text-xs text-gray-500">
@@ -185,8 +188,8 @@ export default function PromptPainter({
         {!isFinishing && !hasPainted && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <p className="text-xs text-gray-600 animate-pulse text-center px-4">
-              {topic && topic !== "general"
-                ? `Draw something related to ${topic}...`
+              {config.theme !== "general"
+                ? `Draw something related to ${config.description}...`
                 : "Draw something beautiful..."}
             </p>
           </div>
